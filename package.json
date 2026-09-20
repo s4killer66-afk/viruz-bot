@@ -1,0 +1,32 @@
+{
+  "name": "viruz-whatsapp-bot",
+  "version": "1.0.0",
+  "description": "VIRUZ WhatsApp Bot with Game Account Checker, Group Moderation Anti-Spam Auto-Kick, and Web Pairing Portal",
+  "main": "index.js",
+  "type": "commonjs",
+  "scripts": {
+    "start": "node index.js",
+    "test": "node test/test-modules.js"
+  },
+  "keywords": [
+    "whatsapp",
+    "baileys",
+    "bot",
+    "viruz",
+    "game-checker",
+    "group-moderator"
+  ],
+  "author": "Antigravity",
+  "license": "ISC",
+  "dependencies": {
+    "@whiskeysockets/baileys": "^6.7.9",
+    "axios": "^1.7.9",
+    "chalk": "^4.1.2",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.7",
+    "express": "^4.21.2",
+    "node-cache": "^5.1.2",
+    "pino": "^9.6.0",
+    "qrcode": "^1.5.4"
+  }
+}
