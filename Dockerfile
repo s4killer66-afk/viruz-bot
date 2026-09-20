@@ -1,5 +1,5 @@
-# Lightweight Node.js 18 LTS image
-FROM node:18-alpine
+# Node.js 20 LTS image (required by Baileys & sharp)
+FROM node:20-alpine
 
 # Set working directory
 WORKDIR /app
@@ -8,7 +8,7 @@ WORKDIR /app
 COPY package*.json ./
 
 # Install dependencies
-RUN npm install --production
+RUN npm install --omit=dev
 
 # Copy all project code
 COPY . .
