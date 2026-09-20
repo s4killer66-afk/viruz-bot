@@ -5,7 +5,7 @@
 module.exports = {
   // Bot Information
   botName: process.env.BOT_NAME || 'VIRUZ',
-  ownerName: process.env.OWNER_NAME || 'GreatLove',
+  ownerName: process.env.OWNER_NAME || 'VIRUZ',
   ownerNumbers: ['923116469820', '923000000000'], // Added user's WhatsApp phone number
   prefix: '.', // Default prefix
   prefixes: ['.', ',', '!', '#', '/'], // Supported prefixes: .menu, ,menu, !menu, #menu, /menu

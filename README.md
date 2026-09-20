@@ -29,7 +29,7 @@ Edit `config.js` to set your bot name, owner WhatsApp number, and spam threshold
 ```javascript
 module.exports = {
   botName: 'VIRUZ',
-  ownerName: 'GreatLove',
+  ownerName: 'VIRUZ',
   ownerNumbers: ['923116469820'], // Your phone number with country code
   prefix: '.',
   port: 3000,
