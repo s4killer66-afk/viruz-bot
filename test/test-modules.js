@@ -6,7 +6,6 @@ const assert = require('assert');
 const {
   checkMobileLegends,
   checkPUBGMobile,
-  checkClashOfClans,
   checkGenshinImpact,
   checkHonorOfKings
 } = require('../lib/gameChecker');
@@ -23,12 +22,12 @@ async function runTests() {
   assert(commandHandler.commands.size >= 10, `Expected at least 10 commands, found ${commandHandler.commands.size}`);
   assert(commandHandler.getCommand('ml') !== null, 'Command .ml should exist');
   assert(commandHandler.getCommand('pubg') !== null, 'Command .pubg should exist');
-  assert(commandHandler.getCommand('coc') !== null, 'Command .coc should exist');
+  assert.strictEqual(commandHandler.getCommand('coc'), null, 'Command .coc should be removed');
   assert(commandHandler.getCommand('genshin') !== null, 'Command .genshin should exist');
   assert(commandHandler.getCommand('hok') !== null, 'Command .hok should exist');
   assert(commandHandler.getCommand('kick') !== null, 'Command .kick should exist');
   assert(commandHandler.getCommand('add') !== null, 'Command .add should exist');
-  console.log('  ✅ Command Handler: All commands loaded successfully.');
+  console.log('  ✅ Command Handler: All active commands loaded; .coc verified removed.');
 
   // Test 2: Mobile Legends Checker
   console.log('\n▶ Test 2: Verifying Mobile Legends (.ml) Checker...');
@@ -41,24 +40,35 @@ async function runTests() {
   assert(mlRes.includes('1st Recharge Bonus'), 'ML output should include available offers');
   console.log('  ✅ Mobile Legends output verified.');
 
-  // Test 3: PUBG Mobile Checker
-  console.log('\n▶ Test 3: Verifying PUBG Mobile (.pubg) Checker...');
+  // Test 3: PUBG Mobile Live Checker
+  console.log('\n▶ Test 3: Verifying PUBG Mobile (.pubg) Live Checker...');
   const pubgRes = await checkPUBGMobile('5123456789');
   assert(pubgRes.includes('PUBG Mobile'), 'PUBG output should mention PUBG Mobile');
   assert(pubgRes.includes('5123456789'), 'PUBG output should contain Character ID');
+  assert(pubgRes.includes('Eliah2'), 'PUBG output should contain verified live player nickname');
   assert(pubgRes.includes('Royale Pass'), 'PUBG output should contain Royale Pass status');
   assert(pubgRes.includes('Prime Plus'), 'PUBG output should contain Prime Plus status');
   assert(pubgRes.includes('✅') || pubgRes.includes('❌'), 'PUBG output should contain tick or cross marks');
-  console.log('  ✅ PUBG Mobile output verified.');
+  console.log('  ✅ PUBG Mobile live output verified with real player account.');
 
-  // Test 4: Clash of Clans Checker
-  console.log('\n▶ Test 4: Verifying Clash of Clans (.coc) Checker...');
-  const cocRes = await checkClashOfClans('#8P0Y8L9V');
-  assert(cocRes.includes('Clash of Clans'), 'COC output should mention Clash of Clans');
-  assert(cocRes.includes('#8P0Y8L9V'), 'COC output should contain Tag');
-  assert(cocRes.includes('Gold Pass'), 'COC output should contain Gold Pass');
-  assert(cocRes.includes('Town Hall'), 'COC output should contain Town Hall');
-  console.log('  ✅ Clash of Clans output verified.');
+  // Test 4: Live Account Validation & Invalid Account Rejection (No Mock Data)
+  console.log('\n▶ Test 4: Verifying Game Checkers Reject Invalid Accounts...');
+  let pubgErr = null;
+  try {
+    await checkPUBGMobile('999999999999');
+  } catch (e) {
+    pubgErr = e.message;
+  }
+  assert(pubgErr && pubgErr.includes('Account Not Found'), 'Invalid PUBG ID must return Account Not Found');
+
+  let hokErr = null;
+  try {
+    await checkHonorOfKings('1234567890');
+  } catch (e) {
+    hokErr = e.message;
+  }
+  assert(hokErr && hokErr.includes('Account Not Found'), 'Invalid HOK ID must return Account Not Found');
+  console.log('  ✅ Live Account Validation: Invalid accounts properly rejected without fake mock data.');
 
   // Test 5: Genshin Impact Checker
   console.log('\n▶ Test 5: Verifying Genshin Impact (.genshin) Checker...');
@@ -69,13 +79,11 @@ async function runTests() {
   assert(giRes.includes('Gnostic Hymn'), 'Genshin output should contain Battle Pass');
   console.log('  ✅ Genshin Impact output verified.');
 
-  // Test 6: Honor of Kings Checker
-  console.log('\n▶ Test 6: Verifying Honor of Kings (.hok) Checker...');
-  const hokRes = await checkHonorOfKings('1234567890');
-  assert(hokRes.includes('Honor of Kings'), 'HOK output should mention Honor of Kings');
-  assert(hokRes.includes('Honor Pass'), 'HOK output should contain Honor Pass');
-  assert(hokRes.includes('1234567890'), 'HOK output should contain ID');
-  console.log('  ✅ Honor of Kings output verified.');
+  // Test 6: Clash of Clans Command Completely Removed
+  console.log('\n▶ Test 6: Verifying Clash of Clans (.coc) Complete Removal...');
+  assert.strictEqual(commandHandler.getCommand('coc'), null, 'Command .coc must not be registered');
+  assert.strictEqual(commandHandler.aliases.get('coc'), undefined, 'Alias coc must not be registered');
+  console.log('  ✅ Clash of Clans removal verified.');
 
   // Test 7: Group Moderation & Sticker Spam Logic
   console.log('\n▶ Test 7: Verifying Sticker Spam Auto-Kick Logic...');

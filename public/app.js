@@ -38,7 +38,6 @@ document.addEventListener('DOMContentLoaded', () => {
   const GAME_SAMPLES = {
     ml: { query: '1114917746 13486', placeholder: 'Enter ID and Zone (e.g. 1114917746 13486)' },
     pubg: { query: '5123456789', placeholder: 'Enter PUBG Character ID (e.g. 5123456789)' },
-    coc: { query: '#8P0Y8L9V', placeholder: 'Enter Player Tag (e.g. #8P0Y8L9V)' },
     genshin: { query: '700012345', placeholder: 'Enter Genshin UID (e.g. 700012345)' },
     hok: { query: '1234567890', placeholder: 'Enter HOK Player ID (e.g. 1234567890)' }
   };
