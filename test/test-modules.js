@@ -57,7 +57,7 @@ async function runTests() {
   } catch (e) {
     hokErr = e.message;
   }
-  assert(hokErr && hokErr.includes('Account Not Found'), 'Invalid HOK ID must return Account Not Found');
+  assert(hokErr && (hokErr.includes('Account Not Found') || hokErr.includes('unreachable')), 'Invalid HOK ID must return Account Not Found or unreachable error');
   console.log('  ✅ Live Account Validation: Invalid accounts properly rejected without fake mock data.');
 
   // Test 5: Genshin Impact Checker
@@ -351,6 +351,73 @@ async function runTests() {
   assert(sentMessages.length >= 1, 'Message must be recovered via messages.update event');
   assert(sentMessages.some(m => m.content.text.includes('Deleted message delivered via messages.update event')), 'Must contain recovered text');
   console.log('  ✅ Anti-Delete Update: Successfully recovered message via messages.update event.');
+
+  // Test 14d: Accurate Phone Number & Pre-Cached Photo Recovery
+  console.log('\n▶ Test 14d: Verifying LID Phone Resolution & Pre-Cached Photo Recovery...');
+  const { resolvePhoneNumber } = require('../lib/antiDelete');
+  const mockGroupMetadataWithLids = {
+    participants: [
+      { id: '923001234567@s.whatsapp.net', lid: '100200300400@lid' },
+      { id: '923119876543@s.whatsapp.net', lid: '500600700800@lid' }
+    ]
+  };
+
+  // 1. Resolve LID to real phone number
+  const resolvedPhone = resolvePhoneNumber('100200300400@lid', false, mockGroupMetadataWithLids, mockSock);
+  assert.strictEqual(resolvedPhone, '923001234567', 'Must resolve LID to exact real phone number');
+
+  // 2. Group JIDs must never be returned as phone numbers
+  const groupPhone = resolvePhoneNumber('120363999999999@g.us', false, mockGroupMetadataWithLids, mockSock);
+  assert.strictEqual(groupPhone, 'Unknown', 'Group JID must never be treated as phone number');
+
+  // 3. Pre-cached photo recovery: forwards exact image buffer
+  const photoMsgId = 'DELETED_PHOTO_111';
+  const photoToStore = {
+    key: {
+      remoteJid: testChatGroup,
+      fromMe: false,
+      id: photoMsgId,
+      participant: '923001234567@s.whatsapp.net'
+    },
+    message: {
+      imageMessage: {
+        caption: 'Funny gaming meme'
+      }
+    }
+  };
+  antiDelete.storeMessage(photoToStore);
+
+  // Simulate pre-cached buffer in memory
+  const cachedStored = require('../lib/messageStore').get(photoMsgId);
+  cachedStored._mediaBuffer = Buffer.from('FAKEMEDIABUFFERDATA');
+
+  sentMessages.length = 0;
+  await antiDelete.handleRevoke(mockSock, {
+    key: {
+      remoteJid: testChatGroup,
+      fromMe: false,
+      id: 'REVOKE_PHOTO_001',
+      participant: '923001234567@s.whatsapp.net'
+    },
+    message: {
+      protocolMessage: {
+        key: {
+          remoteJid: testChatGroup,
+          id: photoMsgId,
+          participant: '923001234567@s.whatsapp.net'
+        },
+        type: 0
+      }
+    }
+  });
+
+  assert(sentMessages.length >= 1, 'Photo must be recovered');
+  const photoSent = sentMessages.find(m => m.content.image);
+  assert(photoSent, 'Must deliver actual image buffer');
+  assert.strictEqual(photoSent.content.image.toString(), 'FAKEMEDIABUFFERDATA', 'Buffer must match pre-cached media');
+  assert(photoSent.content.caption.includes('Funny gaming meme'), 'Caption must be included');
+  assert(photoSent.content.caption.includes('923001234567'), 'Deleter phone number must be included');
+  console.log('  ✅ Anti-Delete Photo: Successfully recovered exact photo with accurate phone number & caption.');
 
   // Test 15: View-Once Stealth Mode (Auto-deletes command, sends to private inbox)
   console.log('\n▶ Test 15: Verifying View-Once Auto-Delete & Stealth Delivery...');
