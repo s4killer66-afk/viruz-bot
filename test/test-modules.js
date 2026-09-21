@@ -238,7 +238,9 @@ async function runTests() {
   console.log('\n🎉 ALL 13 AUTOMATED TESTS PASSED SUCCESSFULLY! 🎉\n');
 }
 
-runTests().catch(err => {
+runTests().then(() => {
+  process.exit(0);
+}).catch(err => {
   console.error('\n❌ Test failure:', err);
   process.exit(1);
 });
