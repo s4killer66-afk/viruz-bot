@@ -5,7 +5,6 @@
 const assert = require('assert');
 const {
   checkMobileLegends,
-  checkPUBGMobile,
   checkGenshinImpact,
   checkHonorOfKings
 } = require('../lib/gameChecker');
@@ -19,48 +18,39 @@ async function runTests() {
 
   // Test 1: Command Handler Loading
   console.log('▶ Test 1: Verifying Command Handler Loading...');
-  assert(commandHandler.commands.size >= 10, `Expected at least 10 commands, found ${commandHandler.commands.size}`);
+  assert(commandHandler.commands.size >= 9, `Expected at least 9 commands, found ${commandHandler.commands.size}`);
   assert(commandHandler.getCommand('ml') !== null, 'Command .ml should exist');
-  assert(commandHandler.getCommand('pubg') !== null, 'Command .pubg should exist');
+  assert.strictEqual(commandHandler.getCommand('pubg'), null, 'Command .pubg should be removed');
   assert.strictEqual(commandHandler.getCommand('coc'), null, 'Command .coc should be removed');
   assert(commandHandler.getCommand('genshin') !== null, 'Command .genshin should exist');
   assert(commandHandler.getCommand('hok') !== null, 'Command .hok should exist');
   assert(commandHandler.getCommand('kick') !== null, 'Command .kick should exist');
   assert(commandHandler.getCommand('add') !== null, 'Command .add should exist');
-  console.log('  ✅ Command Handler: All active commands loaded; .coc verified removed.');
+  console.log('  ✅ Command Handler: Active commands loaded; .coc & .pubg confirmed removed.');
 
-  // Test 2: Mobile Legends Checker
+  // Test 2: Mobile Legends Checker (Accurate Passes & Country Flag)
   console.log('\n▶ Test 2: Verifying Mobile Legends (.ml) Checker...');
   const mlRes = await checkMobileLegends('1114917746', '13486');
   assert(mlRes.includes('Mobile Legends'), 'ML output should mention Mobile Legends');
   assert(mlRes.includes('1114917746'), 'ML output should contain Account ID');
   assert(mlRes.includes('13486'), 'ML output should contain Zone/Server');
-  assert(mlRes.includes('✅') || mlRes.includes('❌'), 'ML output should contain tick or cross marks');
-  assert(mlRes.includes('Weekly Diamond Pass'), 'ML output should include Weekly Diamond Pass');
-  assert(mlRes.includes('1st Recharge Bonus'), 'ML output should include available offers');
-  console.log('  ✅ Mobile Legends output verified.');
+  assert(mlRes.includes('🇮🇩 Indonesia'), 'ML output should contain country flag and name');
+  assert(mlRes.includes('Weekly Diamond Pass (WDP)'), 'ML output should include Weekly Diamond Pass spec');
+  assert(mlRes.includes('Starlight Membership'), 'ML output should include Starlight Membership spec');
+  assert(mlRes.includes('Twilight Pass'), 'ML output should include Twilight Pass spec');
+  assert(mlRes.includes('First Recharge Season Bonus'), 'ML output should include First Recharge bonus');
+  assert(mlRes.includes('Exact remaining pass days'), 'ML output should include transparent privacy note');
+  console.log('  ✅ Mobile Legends output verified with accurate pass specifications & flag.');
 
-  // Test 3: PUBG Mobile Live Checker
-  console.log('\n▶ Test 3: Verifying PUBG Mobile (.pubg) Live Checker...');
-  const pubgRes = await checkPUBGMobile('5123456789');
-  assert(pubgRes.includes('PUBG Mobile'), 'PUBG output should mention PUBG Mobile');
-  assert(pubgRes.includes('5123456789'), 'PUBG output should contain Character ID');
-  assert(pubgRes.includes('Eliah2'), 'PUBG output should contain verified live player nickname');
-  assert(pubgRes.includes('Royale Pass'), 'PUBG output should contain Royale Pass status');
-  assert(pubgRes.includes('Prime Plus'), 'PUBG output should contain Prime Plus status');
-  assert(pubgRes.includes('✅') || pubgRes.includes('❌'), 'PUBG output should contain tick or cross marks');
-  console.log('  ✅ PUBG Mobile live output verified with real player account.');
+  // Test 3: PUBG Mobile Complete Removal
+  console.log('\n▶ Test 3: Verifying PUBG Mobile (.pubg) Complete Removal...');
+  assert.strictEqual(commandHandler.getCommand('pubg'), null, 'Command .pubg must not be registered');
+  assert.strictEqual(commandHandler.aliases.get('pubg'), undefined, 'Alias pubg must not be registered');
+  assert.strictEqual(commandHandler.aliases.get('pubgm'), undefined, 'Alias pubgm must not be registered');
+  console.log('  ✅ PUBG Mobile removal verified.');
 
-  // Test 4: Live Account Validation & Invalid Account Rejection (No Mock Data)
+  // Test 4: Live Account Validation & Invalid Account Rejection
   console.log('\n▶ Test 4: Verifying Game Checkers Reject Invalid Accounts...');
-  let pubgErr = null;
-  try {
-    await checkPUBGMobile('999999999999');
-  } catch (e) {
-    pubgErr = e.message;
-  }
-  assert(pubgErr && pubgErr.includes('Account Not Found'), 'Invalid PUBG ID must return Account Not Found');
-
   let hokErr = null;
   try {
     await checkHonorOfKings('1234567890');

@@ -1,7 +1,7 @@
 # ⚡ VIRUZ WhatsApp Bot
 
 A powerful Multi-Device WhatsApp Bot with:
-- 🎮 **Game Account Information Checkers** (Mobile Legends, PUBG Mobile, Genshin Impact, Honor of Kings) with Country Flags, Region/Server, Active Passes/Subscriptions, and Available Subscription Offers using `✅` and `❌`.
+- 🎮 **Game Account Information Checkers** (Mobile Legends, Genshin Impact, Honor of Kings) with Country Flags, Region/Server, Active Passes/Subscriptions, and Available Subscription Offers using `✅` and `❌`.
 - 🛡️ **Group Chat (GC) Moderation & Anti-Spam Auto-Kick**:
   - **Sticker Spam**: Warning at 3rd sticker ⚠️ | Auto-kick at 4th sticker 🚫
   - **Message Spam**: Warning at 4th repeated message ⚠️ | Auto-kick at 5th repeated message 🚫
@@ -64,7 +64,6 @@ You will see:
 | Command | Usage | Description |
 | :--- | :--- | :--- |
 | `.ml` | `.ml <id> <zone>` | Checks Mobile Legends username, server, country flag, Weekly Diamond Pass, Starlight, and recharge offers. |
-| `.pubg` | `.pubg <id>` | Checks PUBG Mobile nickname, server, country flag, Royale Pass, Prime Plus, and Lucky Airdrop offers. |
 | `.genshin` | `.genshin <uid>` | Checks Genshin Impact Traveler UID, server, country flag, Welkin Moon, Battle Pass, and Crystal offers. |
 | `.hok` | `.hok <id>` | Checks Honor of Kings player ID, server, country flag, Honor Pass, and weekly/monthly card offers. |
 

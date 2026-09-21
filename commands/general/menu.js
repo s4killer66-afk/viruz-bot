@@ -16,7 +16,6 @@ Prefixes: \`. \` or \`, \` | Multi-Device Connected
 
 🎮 *GAME ACCOUNT CHECKERS:*
 • \`${p}ml <id> <zone>\` - Mobile Legends (Passes, Server, Flag, Offers)
-• \`${p}pubg <id>\` - PUBG Mobile (Royale Pass, Prime, Offers)
 • \`${p}genshin <uid>\` - Genshin Impact (Welkin Moon, BP, Server)
 • \`${p}hok <id>\` - Honor of Kings (Honor Pass, Cards, Offers)
 

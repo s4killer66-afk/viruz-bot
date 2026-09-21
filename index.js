@@ -18,7 +18,6 @@ const config = require('./config');
 const waClient = require('./lib/baileys');
 const {
   checkMobileLegends,
-  checkPUBGMobile,
   checkGenshinImpact,
   checkHonorOfKings,
 } = require('./lib/gameChecker');
@@ -126,10 +125,6 @@ app.post('/api/test-game', async (req, res) => {
       case 'ml': {
         const parts = cleanQuery.split(/\s+/);
         result = await checkMobileLegends(parts[0], parts[1]);
-        break;
-      }
-      case 'pubg': {
-        result = await checkPUBGMobile(cleanQuery);
         break;
       }
       case 'genshin': {
