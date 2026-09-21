@@ -106,6 +106,9 @@ async function runTests() {
         kickedUsers.push(...participants);
       }
       return [{ status: '200' }];
+    },
+    async groupMetadata(groupId) {
+      return mockGroupMetadata;
     }
   };
 
@@ -178,7 +181,7 @@ async function runTests() {
   console.log('  ✅ Admin Protection: .kick on admin blocked successfully.');
 
   // Test 11: Auto-Welcome Test (User joins GC -> welcomes with correct phone number mention)
-  console.log('\n▶ Test 11: Verifying Auto-Welcome on Group Join...');
+  console.log('\n▶ Test 11: Verifying Auto-Welcome on Group Join (Standard & WhatsApp LID)...');
   sentMessages.length = 0;
   const newMemberJid = '923009876543@s.whatsapp.net';
   await welcomeHandler.handleParticipantUpdate(mockSock, {
@@ -193,47 +196,88 @@ async function runTests() {
   assert(welcomeMsg.includes('+923009876543'), 'Welcome message must show clean phone +923009876543');
   assert(sentMessages[0].content.mentions.includes('923009876543@s.whatsapp.net'), 'Mentions array must include new member JID');
   assert(welcomeMsg.includes('WELCOME TO THE GROUP'), 'Welcome message must include welcome header');
-  console.log('  ✅ Auto-Welcome: Sent friendly welcome mentioning @923009876543 (+923009876543).');
+  console.log('  ✅ Auto-Welcome (Standard): Sent friendly welcome mentioning @923009876543 (+923009876543).');
 
-  // Test 12: Auto-Goodbye on Voluntary Leave (User leaves GC -> says goodbye with correct number)
-  console.log('\n▶ Test 12: Verifying Auto-Goodbye on Voluntary Leave...');
+  // Test 11b: WhatsApp LID Auto-Welcome Resolution
   sentMessages.length = 0;
-  const leavingUserJid = '923001122334@s.whatsapp.net';
+  const lidUserJid = '152345678901234@lid';
+  const lidRealPhone = '923007788990';
+  // Simulate participant metadata in group with LID and real phone in p.jid
+  mockGroupMetadata.participants.push({
+    id: lidUserJid,
+    jid: `${lidRealPhone}@s.whatsapp.net`,
+    lid: lidUserJid,
+    admin: null
+  });
   await welcomeHandler.handleParticipantUpdate(mockSock, {
     id: mockGroup,
-    author: leavingUserJid, // Author is self -> voluntary leave
-    participants: [leavingUserJid],
+    author: null,
+    participants: [lidUserJid],
+    action: 'add'
+  });
+  assert.strictEqual(sentMessages.length, 1, 'Exactly one welcome message must be sent for LID join');
+  const lidWelcomeMsg = sentMessages[0].content.text;
+  assert(lidWelcomeMsg.includes(`@${lidRealPhone}`), `Welcome message must resolve LID and mention @${lidRealPhone}`);
+  assert(lidWelcomeMsg.includes(`+${lidRealPhone}`), `Welcome message must show real phone +${lidRealPhone}`);
+  assert(!lidWelcomeMsg.includes('152345678901234'), 'Welcome message must NEVER display raw WhatsApp LID!');
+  assert(sentMessages[0].content.mentions.includes(`${lidRealPhone}@s.whatsapp.net`), 'Mentions must use resolved phone number');
+  console.log(`  ✅ Auto-Welcome (WhatsApp LID): Successfully resolved LID to @${lidRealPhone} (+${lidRealPhone}) with zero LID leaks.`);
+
+  // Test 12: Auto-Goodbye on Voluntary Leave (LID User leaves GC -> cached roster resolves real number)
+  console.log('\n▶ Test 12: Verifying Auto-Goodbye on Voluntary Leave (Roster Cache LID Resolution)...');
+  sentMessages.length = 0;
+  // Now simulate that WhatsApp removed the user from the live groupMetadata upon departure
+  mockGroupMetadata.participants = mockGroupMetadata.participants.filter(p => p.id !== lidUserJid && p.lid !== lidUserJid);
+
+  await welcomeHandler.handleParticipantUpdate(mockSock, {
+    id: mockGroup,
+    author: lidUserJid, // Author is self -> voluntary leave
+    participants: [lidUserJid],
     action: 'remove'
   });
   assert.strictEqual(sentMessages.length, 1, 'Exactly one goodbye message must be sent');
   const leaveMsg = sentMessages[0].content.text;
-  assert(leaveMsg.includes('Goodbye @923001122334'), 'Goodbye message must say goodbye @923001122334');
-  assert(leaveMsg.includes('*Member Left:* @923001122334 (+923001122334)'), 'Must show correct leaving member phone number');
-  assert(sentMessages[0].content.mentions.includes('923001122334@s.whatsapp.net'), 'Mentions array must include member JID');
-  console.log('  ✅ Auto-Goodbye (Leave): Sent goodbye mentioning @923001122334 (+923001122334).');
+  assert(leaveMsg.includes(`Goodbye @${lidRealPhone}`), `Goodbye message must say goodbye @${lidRealPhone}`);
+  assert(leaveMsg.includes(`*Member Left:* @${lidRealPhone} (+${lidRealPhone})`), 'Must show correct leaving member phone number');
+  assert(!leaveMsg.includes('152345678901234'), 'Goodbye message must NEVER display raw WhatsApp LID!');
+  assert(sentMessages[0].content.mentions.includes(`${lidRealPhone}@s.whatsapp.net`), 'Mentions array must include resolved member JID');
+  console.log(`  ✅ Auto-Goodbye (Leave with LID): Roster cache resolved departing member to @${lidRealPhone} (+${lidRealPhone}).`);
 
-  // Test 13: Auto-Goodbye on Admin Kick (Admin kicks member -> shows correct number of kicked person & admin)
-  console.log('\n▶ Test 13: Verifying Auto-Goodbye & Correct Number on Admin Kick...');
+  // Test 13: Auto-Goodbye on Admin Kick (Both Admin & Kicked User have WhatsApp LIDs)
+  console.log('\n▶ Test 13: Verifying Auto-Goodbye & Correct Number on Admin Kick with LIDs...');
   sentMessages.length = 0;
-  const kickedUserJid = '923335557777@s.whatsapp.net';
-  const kickingAdminJid = '923116469820@s.whatsapp.net';
+  const kickedLid = '998877665544332@lid';
+  const kickedPhone = '923335557777';
+  const adminLid = '112233445566778@lid';
+  const adminPhone = '923116469820';
+
+  // Seed LID mappings for the kicked member and admin into the welcomeHandler roster cache
+  welcomeHandler.groupRosterCache.set(mockGroup, new Map([
+    ['998877665544332', { phone: kickedPhone, name: 'Kicked Member' }],
+    [kickedPhone, { phone: kickedPhone, name: 'Kicked Member' }],
+    ['112233445566778', { phone: adminPhone, name: 'Admin Kicker' }],
+    [adminPhone, { phone: adminPhone, name: 'Admin Kicker' }]
+  ]));
   
-  // Record kick first (simulating .kick or groupParticipantsUpdate)
-  welcomeHandler.recordKick(mockGroup, kickedUserJid, kickingAdminJid);
+  // Record kick first (simulating .kick command)
+  welcomeHandler.recordKick(mockGroup, kickedLid, adminLid);
 
   await welcomeHandler.handleParticipantUpdate(mockSock, {
     id: mockGroup,
-    author: kickingAdminJid,
-    participants: [kickedUserJid],
+    author: adminLid,
+    participants: [kickedLid],
     action: 'remove'
   });
   assert.strictEqual(sentMessages.length, 1, 'Exactly one kicked goodbye message must be sent');
   const kickMsg = sentMessages[0].content.text;
-  assert(kickMsg.includes('Goodbye @923335557777'), 'Must say goodbye to kicked user @923335557777');
-  assert(kickMsg.includes('*Kicked Member:* @923335557777 (+923335557777)'), 'Must show correct number of kicked person');
-  assert(kickMsg.includes('*Removed By:* @923116469820 (+923116469820)'), 'Must show admin who removed them');
-  assert(sentMessages[0].content.mentions.includes('923335557777@s.whatsapp.net'), 'Must mention kicked user');
-  console.log('  ✅ Auto-Goodbye (Kick): Sent kicked notice with correct number of kicked person @923335557777 and kicker.');
+  assert(kickMsg.includes(`Goodbye @${kickedPhone}`), `Must say goodbye to kicked user @${kickedPhone}`);
+  assert(kickMsg.includes(`*Kicked Member:* @${kickedPhone} (+${kickedPhone})`), 'Must show correct number of kicked person');
+  assert(kickMsg.includes(`*Removed By:* @${adminPhone} (+${adminPhone})`), 'Must show admin who removed them with real phone number');
+  assert(!kickMsg.includes('998877665544332'), 'Must NEVER leak kicked user LID');
+  assert(!kickMsg.includes('112233445566778'), 'Must NEVER leak kicker admin LID');
+  assert(sentMessages[0].content.mentions.includes(`${kickedPhone}@s.whatsapp.net`), 'Must mention kicked user phone');
+  assert(sentMessages[0].content.mentions.includes(`${adminPhone}@s.whatsapp.net`), 'Must mention kicker admin phone');
+  console.log(`  ✅ Auto-Goodbye (Kick with LIDs): Resolved kicked member @${kickedPhone} and kicker admin @${adminPhone} with zero LID leaks.`);
 
   // Test 14: Anti-Delete Stealth Private Mode (Sends to owner inbox, NOT the group)
   console.log('\n▶ Test 14: Verifying Anti-Delete Stealth Delivery to Private Inbox...');
