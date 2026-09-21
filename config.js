@@ -12,7 +12,7 @@ module.exports = {
   sessionDir: './auth_info_baileys',
 
   // Web Dashboard Settings
-  port: process.env.PORT || 3000,
+  port: process.env.PORT || 8080,
 
   // Group Moderation & Anti-Spam Thresholds
   antiSpam: {
