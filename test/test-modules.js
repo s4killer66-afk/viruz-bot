@@ -235,7 +235,107 @@ async function runTests() {
   assert(sentMessages[0].content.mentions.includes('923335557777@s.whatsapp.net'), 'Must mention kicked user');
   console.log('  ✅ Auto-Goodbye (Kick): Sent kicked notice with correct number of kicked person @923335557777 and kicker.');
 
-  console.log('\n🎉 ALL 13 AUTOMATED TESTS PASSED SUCCESSFULLY! 🎉\n');
+  // Test 14: Anti-Delete Stealth Private Mode (Sends to owner inbox, NOT the group)
+  console.log('\n▶ Test 14: Verifying Anti-Delete Stealth Delivery to Private Inbox...');
+  const antiDelete = require('../lib/antiDelete');
+  const deletedMsgId = 'DELETED_MSG_999';
+  const testChatGroup = '987654321-group@g.us';
+  const victimSender = '923444444444@s.whatsapp.net';
+
+  const originalIncomingMsg = {
+    key: {
+      remoteJid: testChatGroup,
+      fromMe: false,
+      id: deletedMsgId,
+      participant: victimSender
+    },
+    message: {
+      conversation: 'Secret message that will be deleted!'
+    }
+  };
+
+  // 1. Store message in cache
+  antiDelete.storeMessage(originalIncomingMsg);
+
+  // 2. Someone deletes the message (revoke packet arrives)
+  const revokePacket = {
+    key: {
+      remoteJid: testChatGroup,
+      fromMe: false,
+      id: 'REVOKE_PACKET_001'
+    },
+    message: {
+      protocolMessage: {
+        key: {
+          remoteJid: testChatGroup,
+          id: deletedMsgId,
+          participant: victimSender
+        },
+        type: 0 // REVOKE
+      }
+    }
+  };
+
+  sentMessages.length = 0;
+  await antiDelete.handleRevoke(mockSock, revokePacket);
+
+  // Verification:
+  assert.strictEqual(sentMessages.length, 1, 'Exactly one message should be sent for recovery');
+  assert.notStrictEqual(sentMessages[0].to, testChatGroup, 'Recovered message must NOT be sent to the group!');
+  const expectedInbox = mockSock.user.id.split(':')[0].split('@')[0] + '@s.whatsapp.net';
+  assert.strictEqual(sentMessages[0].to, expectedInbox, 'Recovered message must be delivered to owner personal inbox');
+  assert(sentMessages[0].content.text.includes('Secret message that will be deleted!'), 'Recovered message must contain deleted text');
+  assert(sentMessages[0].content.text.includes('923444444444'), 'Must identify sender');
+  console.log('  ✅ Anti-Delete: Forwarded deleted message to private inbox without alerting group.');
+
+  // Test 15: View-Once Stealth Mode (Auto-deletes command, sends to private inbox)
+  console.log('\n▶ Test 15: Verifying View-Once Auto-Delete & Stealth Delivery...');
+  const viewOnceCmd = require('../commands/general/viewonce');
+  const viewOnceMsgId = 'VO_COMMAND_MSG_123';
+
+  const mockViewOnceCommand = {
+    key: {
+      remoteJid: testChatGroup,
+      fromMe: true,
+      id: viewOnceMsgId,
+      participant: botJid
+    },
+    message: {
+      extendedTextMessage: {
+        text: '.viewonce',
+        contextInfo: {
+          participant: '923555555555@s.whatsapp.net',
+          quotedMessage: {
+            viewOnceMessageV2: {
+              message: {
+                imageMessage: {
+                  url: 'https://example.com/fake-media',
+                  mimetype: 'image/jpeg',
+                  caption: 'Secret View Once Photo'
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  };
+
+  sentMessages.length = 0;
+  // Mock downloadContentFromMessage to return test buffer
+  await viewOnceCmd.execute({ sock: mockSock, msg: mockViewOnceCommand, from: testChatGroup });
+
+  // Verify command deletion message was dispatched to the group
+  const deleteCommandDispatch = sentMessages.find(m => m.content.delete && m.content.delete.id === viewOnceMsgId);
+  assert(deleteCommandDispatch, 'Must automatically delete the .viewonce command message from chat');
+  assert.strictEqual(deleteCommandDispatch.to, testChatGroup, 'Delete command target must be the group');
+
+  // Verify no reaction emoji was sent to the group
+  const reactionSent = sentMessages.find(m => m.content.react);
+  assert(!reactionSent, 'Must NOT react with any emoji in the group');
+  console.log('  ✅ View-Once: Command automatically deleted from chat, no public notifications.');
+
+  console.log('\n🎉 ALL 15 AUTOMATED TESTS PASSED SUCCESSFULLY! 🎉\n');
 }
 
 runTests().then(() => {
