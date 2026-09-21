@@ -335,7 +335,40 @@ async function runTests() {
   assert(!reactionSent, 'Must NOT react with any emoji in the group');
   console.log('  ✅ View-Once: Command automatically deleted from chat, no public notifications.');
 
-  console.log('\n🎉 ALL 15 AUTOMATED TESTS PASSED SUCCESSFULLY! 🎉\n');
+  // Test 16: MessageStore & getMessage Retry (Resolves "Waiting for this message" issue)
+  console.log('\n▶ Test 16: Verifying MessageStore & getMessage Retry Resolution...');
+  const messageStore = require('../lib/messageStore');
+  const testMsgId = 'RETRY_CMD_REPLY_789';
+  const testJid = '923116469820@s.whatsapp.net';
+  const mockOutgoingReply = {
+    key: {
+      remoteJid: testJid,
+      fromMe: true,
+      id: testMsgId
+    },
+    message: {
+      extendedTextMessage: {
+        text: 'This is the bot command response'
+      }
+    }
+  };
+
+  messageStore.set(testMsgId, mockOutgoingReply);
+
+  // Simulate Baileys getMessage call when recipient requests retry
+  const retrievedProto = messageStore.getMessageProto({ id: testMsgId, remoteJid: testJid });
+  assert(retrievedProto !== null, 'Must retrieve original message proto on retry request');
+  assert.strictEqual(
+    retrievedProto.extendedTextMessage.text,
+    'This is the bot command response',
+    'Retrieved proto must match original command reply content'
+  );
+
+  const emptyProto = messageStore.getMessageProto({ id: 'NON_EXISTENT_ID' });
+  assert.strictEqual(emptyProto, null, 'Non-existent ID should return null safely');
+  console.log('  ✅ MessageStore: Correctly provides message proto for Signal retry requests.');
+
+  console.log('\n🎉 ALL 16 AUTOMATED TESTS PASSED SUCCESSFULLY! 🎉\n');
 }
 
 runTests().then(() => {
