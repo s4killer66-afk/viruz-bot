@@ -4,10 +4,12 @@
 
 const assert = require('assert');
 const config = require('../config');
+const { server } = require('../index');
 
 async function testServer() {
   console.log('🌐 Testing Web Server and API Endpoints...');
   const baseUrl = `http://localhost:${config.port}`;
+  await new Promise(r => setTimeout(r, 1000));
 
   // 1. Test /api/status
   const statusRes = await fetch(`${baseUrl}/api/status`);
@@ -48,10 +50,12 @@ async function testServer() {
   console.log('  ✅ Static Webpage (index.html) serving verified.');
 
   console.log('\n🎉 ALL WEB SERVER INTEGRATION TESTS PASSED! 🎉\n');
+  if (server) server.close();
   process.exit(0);
 }
 
 testServer().catch(err => {
   console.error('❌ Server test failure:', err);
+  if (server) server.close();
   process.exit(1);
 });
