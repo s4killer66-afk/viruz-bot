@@ -3,8 +3,8 @@
 A powerful Multi-Device WhatsApp Bot with:
 - 🎮 **Game Account Information Checkers** (Mobile Legends, Genshin Impact, Honor of Kings) with Country Flags, Region/Server, Active Passes/Subscriptions, and Available Subscription Offers using `✅` and `❌`.
 - 🛡️ **Group Chat (GC) Moderation & Anti-Spam Auto-Kick**:
-  - **Sticker Spam**: Warning at 3rd sticker ⚠️ | Auto-kick at 4th sticker 🚫
-  - **Message Spam**: Warning at 4th repeated message ⚠️ | Auto-kick at 5th repeated message 🚫
+  - **Sticker Spam**: Warning at 4th sticker ⚠️ | Auto-kick at 5th sticker 🚫
+  - **Message Spam**: Warning at 5th repeated message ⚠️ | Auto-kick at 6th repeated message 🚫
   - **Admin Immunity**: Admins are **never** warned or kicked for spam
   - **Admin Protection**: No one can kick admins (bot blocks `.kick` against admins)
   - **Admin-Only Commands**: `.kick`, `.add`, `.mute`, `.unmute`, `.tagall`, `.hidetag`
@@ -96,15 +96,15 @@ You will see:
 
 ### Anti-Sticker Spam
 - If a member rapidly sends stickers:
-  - **3rd Sticker:** Bot sends a warning tag:
-    `⚠️ [STICKER SPAM WARNING] @user Warning (3/4)! Stop spamming stickers or you will be kicked.`
-  - **4th Sticker:** Bot automatically removes the user from the group.
+  - **4th Sticker:** Bot sends a warning tag:
+    `⚠️ [STICKER SPAM WARNING] @user Warning (4/5)! Stop spamming stickers or you will be kicked.`
+  - **5th Sticker:** Bot automatically removes the user from the group.
 
 ### Anti-Message Spam
 - If a member repeats or spams the same message:
-  - **4th Repeated Message:** Bot sends a warning tag:
-    `⚠️ [MESSAGE SPAM WARNING] @user Warning (4/5)! Stop spamming or you will be kicked.`
-  - **5th Repeated Message:** Bot automatically removes the user from the group.
+  - **5th Repeated Message:** Bot sends a warning tag:
+    `⚠️ [MESSAGE SPAM WARNING] @user Warning (5/6)! Stop spamming or you will be kicked.`
+  - **6th Repeated Message:** Bot automatically removes the user from the group.
 
 ### Admin Safety Guarantee
 - **Spam Immunity:** Admins and the bot owner are **never** warned or kicked for sending stickers or messages.

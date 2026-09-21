@@ -30,8 +30,8 @@ Prefixes: \`. \` or \`, \` | Multi-Device Connected
 • \`${p}groupinfo\` - View group settings & spam thresholds
 
 ⚙️ *ANTI-SPAM SYSTEM (Automatic):*
-• *Sticker Spam:* 3rd sticker = Warning ⚠️ | 4th = Auto-Kick 🚫
-• *Message Spam:* 4th repeat = Warning ⚠️ | 5th = Auto-Kick 🚫
+• *Sticker Spam:* ${config.antiSpam.stickerWarningThreshold}th sticker = Warning ⚠️ | ${config.antiSpam.stickerKickThreshold}th = Auto-Kick 🚫
+• *Message Spam:* ${config.antiSpam.messageWarningThreshold}th repeat = Warning ⚠️ | ${config.antiSpam.messageKickThreshold}th = Auto-Kick 🚫
 • *Admins:* 100% Protected (Never warned or kicked!)
 
 ℹ️ *UTILITIES & TOOLS:*
