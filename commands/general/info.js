@@ -1,6 +1,7 @@
 const os = require('os');
 const { atlasBox, formatUptime } = require('../../lib/utils');
 const config = require('../../config');
+const antiDelete = require('../../lib/antiDelete');
 
 module.exports = {
   name: 'info',
@@ -12,6 +13,7 @@ module.exports = {
     const uptime = formatUptime(process.uptime());
     const ramUsed = (process.memoryUsage().rss / 1024 / 1024).toFixed(2);
     const totalRam = (os.totalmem() / 1024 / 1024 / 1024).toFixed(2);
+    const antiDeleteStatus = antiDelete.isEnabled() ? '🟢 ENABLED (Stealth Inbox)' : '🔴 DISABLED';
 
     const body = `
 🤖 *Bot Name:* ${config.botName}
@@ -19,6 +21,7 @@ module.exports = {
 ⏱️ *Uptime:* ${uptime}
 💾 *Memory Usage:* ${ramUsed} MB / ${totalRam} GB
 🖥️ *Platform:* ${os.platform()} (${os.arch()})
+🛡️ *Anti-Delete:* ${antiDeleteStatus}
 🔗 *Web Dashboard:* http://localhost:${config.port}
 `.trim();
 
