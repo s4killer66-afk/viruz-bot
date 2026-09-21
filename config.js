@@ -19,17 +19,17 @@ module.exports = {
     enabled: true,
     
     // Sticker Spam Rules:
-    // 3rd rapid sticker = Warning
-    // 4th rapid sticker = Auto-Kick
-    stickerWarningThreshold: 3,
-    stickerKickThreshold: 4,
+    // 4th rapid sticker = Warning
+    // 5th rapid sticker = Auto-Kick
+    stickerWarningThreshold: 4,
+    stickerKickThreshold: 5,
     stickerTimeWindowMs: 12000, // 12 seconds window
 
     // Message Spam Rules:
-    // 4th rapid/repeated message = Warning
-    // 5th rapid/repeated message = Auto-Kick
-    messageWarningThreshold: 4,
-    messageKickThreshold: 5,
+    // 5th rapid/repeated message = Warning
+    // 6th rapid/repeated message = Auto-Kick
+    messageWarningThreshold: 5,
+    messageKickThreshold: 6,
     messageTimeWindowMs: 10000, // 10 seconds window
 
     // Admins and Bot Owner are permanently immune

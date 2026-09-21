@@ -112,23 +112,24 @@ async function runTests() {
     }
   };
 
-  // User sends 1st and 2nd sticker -> no kick, no warn
+  // User sends 1st, 2nd, and 3rd sticker -> no kick, no warn
   await moderator.handleStickerSpam(mockSock, mockGroup, spammerUser, mockGroupMetadata);
   await moderator.handleStickerSpam(mockSock, mockGroup, spammerUser, mockGroupMetadata);
-  assert.strictEqual(sentMessages.length, 0, 'No warning should be sent on 1st or 2nd sticker');
-  assert.strictEqual(kickedUsers.length, 0, 'No kick on 1st or 2nd sticker');
+  await moderator.handleStickerSpam(mockSock, mockGroup, spammerUser, mockGroupMetadata);
+  assert.strictEqual(sentMessages.length, 0, 'No warning should be sent on 1st, 2nd, or 3rd sticker');
+  assert.strictEqual(kickedUsers.length, 0, 'No kick on 1st, 2nd, or 3rd sticker');
 
-  // User sends 3rd sticker -> WARNING expected
+  // User sends 4th sticker -> WARNING expected (Sticker limit reached)
   await moderator.handleStickerSpam(mockSock, mockGroup, spammerUser, mockGroupMetadata);
-  assert.strictEqual(sentMessages.length, 1, 'Warning message must be sent on 3rd sticker');
+  assert.strictEqual(sentMessages.length, 1, 'Warning message must be sent on 4th sticker');
   assert(sentMessages[0].content.text.includes('STICKER SPAM WARNING'), 'Should be sticker warning message');
-  assert.strictEqual(kickedUsers.length, 0, 'User should not be kicked yet at 3rd sticker');
+  assert.strictEqual(kickedUsers.length, 0, 'User should not be kicked yet at 4th sticker');
 
-  // User sends 4th sticker -> AUTO KICK expected!
+  // User sends 5th sticker -> AUTO KICK expected!
   await moderator.handleStickerSpam(mockSock, mockGroup, spammerUser, mockGroupMetadata);
-  assert(kickedUsers.includes(spammerUser), 'User must be kicked on 4th sticker spam');
+  assert(kickedUsers.includes(spammerUser), 'User must be kicked on 5th sticker spam');
   assert(sentMessages.some(m => m.content.text.includes('AUTO KICK - STICKER SPAM')), 'Auto kick notice sent');
-  console.log('  ✅ Sticker Spam: Warned at 3rd, auto-kicked at 4th.');
+  console.log('  ✅ Sticker Spam: Warned at 4th, auto-kicked at 5th.');
 
   // Test 8: Message Spam Auto-Kick Logic
   console.log('\n▶ Test 8: Verifying Repeated Message Spam Auto-Kick Logic...');
@@ -138,24 +139,24 @@ async function runTests() {
   sentMessages.length = 0;
   kickedUsers.length = 0;
 
-  // Send 3 repeated messages -> no warning yet
-  for (let i = 0; i < 3; i++) {
+  // Send 4 repeated messages -> no warning yet
+  for (let i = 0; i < 4; i++) {
     await moderator.handleMessageSpam(mockSock, mockGroup, msgSpammer, 'hello spam', mockGroupMetadata);
   }
-  assert.strictEqual(sentMessages.length, 0, 'No warning on 1-3 messages');
-  assert.strictEqual(kickedUsers.length, 0, 'No kick on 1-3 messages');
+  assert.strictEqual(sentMessages.length, 0, 'No warning on 1-4 messages');
+  assert.strictEqual(kickedUsers.length, 0, 'No kick on 1-4 messages');
 
-  // 4th repeated message -> WARNING expected!
+  // 5th repeated message -> WARNING expected!
   await moderator.handleMessageSpam(mockSock, mockGroup, msgSpammer, 'hello spam', mockGroupMetadata);
-  assert.strictEqual(sentMessages.length, 1, 'Warning must be sent on 4th repeated message');
+  assert.strictEqual(sentMessages.length, 1, 'Warning must be sent on 5th repeated message');
   assert(sentMessages[0].content.text.includes('MESSAGE SPAM WARNING'), 'Should be message spam warning');
-  assert.strictEqual(kickedUsers.length, 0, 'User should not be kicked at 4th message');
+  assert.strictEqual(kickedUsers.length, 0, 'User should not be kicked at 5th message');
 
-  // 5th repeated message -> AUTO KICK expected!
+  // 6th repeated message -> AUTO KICK expected!
   await moderator.handleMessageSpam(mockSock, mockGroup, msgSpammer, 'hello spam', mockGroupMetadata);
-  assert(kickedUsers.includes(msgSpammer), 'User must be kicked on 5th repeated message');
+  assert(kickedUsers.includes(msgSpammer), 'User must be kicked on 6th repeated message');
   assert(sentMessages.some(m => m.content.text.includes('AUTO KICK - MESSAGE SPAM')), 'Auto kick message sent');
-  console.log('  ✅ Message Spam: Warned at 4th, auto-kicked at 5th.');
+  console.log('  ✅ Message Spam: Warned at 5th, auto-kicked at 6th.');
 
   // Test 9: Admin Immunity Test (Admins are NEVER warned or kicked for spam)
   console.log('\n▶ Test 9: Verifying Admin Spam Immunity...');
