@@ -76,8 +76,8 @@ module.exports = {
 
       const sent = await sock.sendMessage(from, {
         audio: result.buffer,
-        mimetype: 'audio/mp4',
-        ptt: true
+        mimetype: result.mimetype || 'audio/ogg; codecs=opus',
+        ptt: result.ptt !== undefined ? result.ptt : true
       }, { quoted: msg });
 
       if (sent?.key?.id) {

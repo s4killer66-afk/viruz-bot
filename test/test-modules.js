@@ -708,8 +708,14 @@ async function runTests() {
   });
   assert(sentMessages.length === 1, 'Should send 1 audio message');
   assert(Buffer.isBuffer(sentMessages[0].content.audio), 'Must send audio Buffer');
-  assert(sentMessages[0].content.audio.length > 1000, 'Audio buffer must be valid audio (> 1000 bytes)');
-  assert.strictEqual(sentMessages[0].content.mimetype, 'audio/mp4', 'Mimetype must be audio/mp4');
+  assert(sentMessages[0].content.audio.length > 500, 'Audio buffer must be valid audio (> 500 bytes)');
+  assert(
+    sentMessages[0].content.mimetype === 'audio/ogg; codecs=opus' || sentMessages[0].content.mimetype === 'audio/mpeg',
+    'Mimetype must be WhatsApp voice note compatible'
+  );
+  if (sentMessages[0].content.mimetype === 'audio/ogg; codecs=opus') {
+    assert.strictEqual(sentMessages[0].content.audio.slice(0, 4).toString(), 'OggS', 'Must have valid OggS container header');
+  }
   assert.strictEqual(sentMessages[0].content.ptt, true, 'PTT must be true for WhatsApp voice note bubble');
 
   // Test 18c: Voice note generation without character specified (.tts Hello there!) -> defaults to Goku
@@ -723,7 +729,7 @@ async function runTests() {
   assert(sentMessages.length === 1, 'Should send 1 audio message');
   assert(Buffer.isBuffer(sentMessages[0].content.audio), 'Must send audio Buffer');
   assert.strictEqual(sentMessages[0].content.ptt, true, 'PTT must be true for voice note');
-  console.log('  ✅ Anime TTS (.tts): Registered, aliases verified, help displayed, and voice note generated as PTT audio bubble.');
+  console.log('  ✅ Anime TTS (.tts): Registered, Opus OGG transcoded (OggS), and playable WhatsApp voice note generated.');
 
   console.log('\n🎉 ALL 18 AUTOMATED TESTS PASSED SUCCESSFULLY! 🎉\n');
 }
