@@ -1,143 +1,120 @@
-const { resolveHero, generateHeroTTS, getRealHeroVoice, getHeroCatalog, HERO_VOICES } = require('../../lib/heroVoices');
+const { resolveHero, generateHeroTTS, getHeroCatalog, getRandomAnimeVoice } = require('../../lib/heroVoices');
+const ttsState = require('../../lib/ttsState');
+const moderator = require('../../lib/groupModerator');
 const safety = require('../../lib/safety');
-const groupModerator = require('../../lib/groupModerator');
 
 module.exports = {
   name: 'tts',
-  aliases: ['tt', 'mltts', 'herotts', 'vn', 'voicenote'],
+  aliases: ['tt', 'animetts', 'voicenote', 'vn'],
   category: 'games',
-  description: 'Real Mobile Legends hero voices & voice notes (Vale, Valir, Vexana, and more)',
-  usage: '.tts <hero> [message] | .tts list | .tts on | .tts off',
+  description: 'Convert text to iconic Anime voice notes (Goku, Gojo, Sukuna, Naruto, etc.)',
+  usage: '.tts <character> <message> | .tts go <message> | .tts on | .tts off | .tts list',
   async execute({ sock, msg, from, sender, isGroup, groupMetadata, args }) {
     if (!args[0]) {
       return sock.sendMessage(from, {
-        text: '🎙️ *Real Mobile Legends Hero Voices*\n\n*Format:* `.tts <hero> [message]` or `.tt <hero>`\n*Examples:*\n• `.tts vale` (Real Vale voice: _"Wind, talk to me!"_)\n• `.tts valir` (Real Valir voice: _"Everything shall burn to ashes!"_)\n• `.tts vexana` (Real Vexana voice: _"From the ashes of despair..."_)\n• `.tts gusion` (Real Gusion voice: _"Break the limits of speed!"_)\n• `.tts list` (View all 20+ MLBB heroes)\n\n👮‍♂️ *Admin Controls:*\n• `.tts on` - Enable TTS in this group\n• `.tts off` - Disable TTS in this group'
+        text: '🎙️ *Anime Voice TTS (Text-to-Speech)*\n\n' +
+              '*Format:* `.tts <character> <message>` or `.tt <character> <message>`\n' +
+              '*Examples:*\n' +
+              '• `.tts go Kamehameha!` (Son Goku 💥)\n' +
+              '• `.tts gojo Throughout heaven and earth, I alone am the honored one.` (Gojo 🤞)\n' +
+              '• `.tts sukuna Know your place, fool.` (Sukuna 🩸)\n' +
+              '• `.tts naruto I will never give up, dattebayo!` (Naruto 🍥)\n' +
+              '• `.tts luffy I am gonna be King of the Pirates!` (Luffy 👒)\n' +
+              '• `.tts random <message>` (Speaks in a random anime voice 🎲)\n' +
+              '• `.tts list` (View all 20+ anime voices)\n\n' +
+              '_Admin Controls:_\n' +
+              '• `.tts on` - Enable TTS in this group\n' +
+              '• `.tts off` - Disable TTS in this group'
       }, { quoted: msg });
     }
 
     const firstWord = args[0].toLowerCase();
 
-    // ── Admin Command: .tts on ──
-    if (firstWord === 'on' || firstWord === 'enable' || firstWord === '1') {
+    // ── Admin Subcommand: .tts on / .tts off ──
+    if (firstWord === 'on' || firstWord === 'enable' || firstWord === 'off' || firstWord === 'disable') {
       const isOwner = safety.isOwner(sender) || msg.key.fromMe;
-      const isAdmin = isGroup ? groupModerator.isGroupAdmin(sender, groupMetadata) : true;
-      if (!isAdmin && !isOwner) {
+      const isAdmin = isGroup && moderator.isGroupAdmin(sender, groupMetadata);
+
+      if (!isOwner && !isAdmin) {
         return sock.sendMessage(from, {
-          text: '⛔ *Access Denied!*\nOnly group admins or the bot owner can turn TTS on or off.'
+          text: '⛔ *Access Denied!*\nOnly Group Admins and the Bot Owner can enable or disable TTS.'
         }, { quoted: msg });
       }
-      if (isGroup) {
-        groupModerator.setTtsEnabled(from, true);
+
+      const shouldEnable = firstWord === 'on' || firstWord === 'enable';
+      ttsState.setTtsEnabled(from, shouldEnable);
+
+      if (shouldEnable) {
+        return sock.sendMessage(from, {
+          text: '🟢 *TTS Enabled!*\nText-to-speech anime voice generation is now active for everyone in this group!\n_Try:_ `.tts go Hello everyone!`'
+        }, { quoted: msg });
+      } else {
+        return sock.sendMessage(from, {
+          text: '🔴 *TTS Disabled!*\nText-to-speech voice generation has been turned OFF in this group.\n_Group admins can re-enable it anytime with `.tts on`._'
+        }, { quoted: msg });
       }
+    }
+
+    // ── Check if TTS is disabled in this group ──
+    if (!ttsState.isTtsEnabled(from)) {
       return sock.sendMessage(from, {
-        text: '✅ *Hero Voice TTS is now ENABLED in this group!*\nAll members can now use `.tts <hero>` or `.tt <hero>`.'
+        text: '⚠️ *TTS is Currently Disabled!*\nText-to-speech has been turned off by an admin in this group.\n_Ask a group admin to enable it using `.tts on`._'
       }, { quoted: msg });
     }
 
-    // ── Admin Command: .tts off ──
-    if (firstWord === 'off' || firstWord === 'disable' || firstWord === '0') {
-      const isOwner = safety.isOwner(sender) || msg.key.fromMe;
-      const isAdmin = isGroup ? groupModerator.isGroupAdmin(sender, groupMetadata) : true;
-      if (!isAdmin && !isOwner) {
-        return sock.sendMessage(from, {
-          text: '⛔ *Access Denied!*\nOnly group admins or the bot owner can turn TTS on or off.'
-        }, { quoted: msg });
-      }
-      if (isGroup) {
-        groupModerator.setTtsEnabled(from, false);
-      }
-      return sock.sendMessage(from, {
-        text: '🔴 *Hero Voice TTS is now DISABLED in this group!*\nRegular members cannot use TTS until an admin enables it with `.tts on`.'
-      }, { quoted: msg });
-    }
-
-    // ── Subcommand: View list of heroes ──
-    if (firstWord === 'list' || firstWord === 'heroes' || firstWord === 'help') {
+    // ── Subcommand: View list of anime voices ──
+    if (firstWord === 'list' || firstWord === 'voices' || firstWord === 'heroes' || firstWord === 'help') {
       const catalog = getHeroCatalog();
       return sock.sendMessage(from, { text: catalog }, { quoted: msg });
     }
 
-    // ── Check if TTS is disabled in this group ──
-    if (isGroup && !groupModerator.isTtsEnabled(from)) {
-      const isOwner = safety.isOwner(sender) || msg.key.fromMe;
-      const isAdmin = groupModerator.isGroupAdmin(sender, groupMetadata);
-      if (!isAdmin && !isOwner) {
-        return sock.sendMessage(from, {
-          text: '⚠️ *TTS is Disabled!*\nHero voice notes are currently disabled in this group by admins.\nAn admin can re-enable it using `.tts on`.'
-        }, { quoted: msg });
-      }
-    }
-
-    // Determine target hero and speech text
-    let targetHero = null;
+    // ── Determine Target Character and Speech Text ──
+    let targetCharacter = null;
     let messageText = '';
 
-    const matchedHero = resolveHero(firstWord);
-    if (matchedHero) {
-      targetHero = matchedHero;
+    const matchedChar = resolveHero(firstWord);
+    if (matchedChar) {
+      targetCharacter = matchedChar;
       messageText = args.slice(1).join(' ').trim();
     } else {
-      // Default to Vale if no hero was specified
-      targetHero = HERO_VOICES.vale;
+      // If first word is not a character name, pick a random anime voice
+      targetCharacter = getRandomAnimeVoice();
       messageText = args.join(' ').trim();
     }
 
-    // React to user's message with the hero's signature emoji
+    if (!messageText) {
+      return sock.sendMessage(from, {
+        text: `❌ *Missing Message!*\nPlease provide the text for ${targetCharacter.emoji} *${targetCharacter.name}* to speak.\n*Example:* \`.tts ${targetCharacter.id} Let's do this!\``
+      }, { quoted: msg });
+    }
+
+    // React to user's message with character emoji
     try {
-      if (targetHero.emoji && msg?.key) {
+      if (targetCharacter.emoji && msg?.key) {
         await sock.sendMessage(from, {
-          react: { text: targetHero.emoji, key: msg.key }
+          react: { text: targetCharacter.emoji, key: msg.key }
         });
       }
     } catch (e) {}
 
     try {
-      // Check if real Mobile Legends in-game hero voice line is available
-      const realVoice = await getRealHeroVoice(targetHero.id);
+      // Generate voice audio buffer smoothly in memory (zero HYEHOST load)
+      const { buffer, character } = await generateHeroTTS(targetCharacter.id, messageText);
 
-      if (realVoice && (!messageText || realVoice.quote)) {
-        // Send the real official Mobile Legends hero voice audio!
-        const sentAudio = await sock.sendMessage(from, {
-          audio: realVoice.buffer,
-          mimetype: realVoice.mimetype || 'audio/ogg',
-          fileName: `${targetHero.name}_real_voice.ogg`
-        }, { quoted: msg });
-
-        if (sentAudio?.key?.id) {
-          safety.markSentByBot(sentAudio.key.id);
-        }
-
-        // Send quote info card
-        const quoteText = `${targetHero.emoji} *${targetHero.name}* (${targetHero.title})\n💬 _"${realVoice.quote}"_${messageText ? '\n\n📝 *User Note:* ' + messageText : ''}`;
-        const sentInfo = await sock.sendMessage(from, {
-          text: quoteText
-        }, { quoted: msg });
-
-        if (sentInfo?.key?.id) {
-          safety.markSentByBot(sentInfo.key.id);
-        }
-        return;
-      }
-
-      // Fallback: Generate custom synthesized audio for custom messages or anime guests
-      if (!messageText) {
-        messageText = targetHero.quote || 'Attack the enemy!';
-      }
-
-      const { buffer } = await generateHeroTTS(targetHero.id, messageText);
+      // Send as playable WhatsApp audio message with true audio/mpeg mimetype
       const sentAudio = await sock.sendMessage(from, {
         audio: buffer,
         mimetype: 'audio/mpeg',
-        fileName: `${targetHero.name}_voice.mp3`
+        fileName: `${character.name}_voice.mp3`
       }, { quoted: msg });
 
       if (sentAudio?.key?.id) {
         safety.markSentByBot(sentAudio.key.id);
       }
     } catch (err) {
-      console.error(`[TTS Error] Failed to send voice for ${targetHero.name}:`, err.message);
+      console.error(`[TTS Error] Failed to generate TTS for ${targetCharacter.name}:`, err.message);
       const sentErr = await sock.sendMessage(from, {
-        text: `❌ *Failed to load ${targetHero.name} voice:* ${err.message}`
+        text: `❌ *Failed to generate ${targetCharacter.name} voice:* ${err.message}`
       }, { quoted: msg });
       if (sentErr?.key?.id) {
         safety.markSentByBot(sentErr.key.id);

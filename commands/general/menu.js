@@ -19,18 +19,20 @@ Prefixes: \`. \` or \`, \` | Multi-Device Connected
 • \`${p}genshin <uid>\` - Genshin Impact (Welkin Moon, BP, Server)
 • \`${p}hok <id>\` - Honor of Kings (Honor Pass, Cards, Offers)
 
-🎙️ *REAL HERO VOICES & TTS (FOR EVERYONE):*
-• \`${p}tts <hero> [message]\` (or \`${p}tt\`) - Real MLBB Hero Voice & Voice Note
-  _Examples:_ \`${p}tts vale\`, \`${p}tts valir\`, \`${p}tts vexana\`
-• \`${p}tts list\` - Catalog of 20+ MLBB hero voices (Vale, Valir, Vexana, etc.)
+🎙️ *ANIME VOICE TTS (FOR EVERYONE):*
+• \`${p}tts <character> <message>\` (or \`${p}tt\`) - Playable Anime Voice Audio
+  _Examples:_ \`${p}tts go <text>\` (Goku 💥), \`${p}tts gojo <text>\` (🤞), \`${p}tts naruto <text>\` (🍥)
+• \`${p}tts random <message>\` - Speaks in a random anime voice 🎲
+• \`${p}tts list\` - View all 20+ Anime voices
+• \`${p}tts [on/off]\` - Enable or disable TTS in group (Admins only)
+
+👥 *GROUP PARTICIPATION (For Everyone):*
+• \`${p}add <number/@user>\` - Add or invite a member to the group
 
 🛡️ *GROUP MODERATION (Admins Only):*
-• \`${p}bot [on/off]\` - Turn bot on or off in this group (Admins & Owner)
-• \`${p}tts [on/off]\` - Enable or disable TTS in this group (Admins & Owner)
 • \`${p}warn @user [reason]\` - Warn a member (Shows Admin Name, 6 warns = Kick)
 • \`${p}resetwarn @user\` - Reset member's warnings to 0
 • \`${p}kick @user\` - Kick member (Admins are protected!)
-• \`${p}add <number>\` - Add member via phone number (Admins & Members)
 • \`${p}welcome [on/off]\` - Toggle auto welcome & goodbye
 • \`${p}tagall [text]\` - Mention all group members
 • \`${p}hidetag [text]\` - Invisible mention all members
@@ -44,6 +46,7 @@ Prefixes: \`. \` or \`, \` | Multi-Device Connected
 • *Admins:* 100% Protected (Never warned or kicked!)
 
 ℹ️ *UTILITIES & TOOLS:*
+• \`${p}bot [on/off]\` - Turn bot on/off (Group Admins & Owner)
 • \`${p}viewonce\` (or \`${p}videwonce\`) - Silently save View Once media to your inbox
 • \`${p}antidelete [on/off]\` - Toggle deleted messages recovery
 • \`${p}ping\` - Check bot response speed
