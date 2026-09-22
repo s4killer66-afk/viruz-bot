@@ -14,8 +14,10 @@ module.exports = {
 👋 *Welcome to VIRUZ WhatsApp Bot!*
 Prefixes: \`. \` or \`, \` | Multi-Device Connected
 
-🎮 *GAME ACCOUNT CHECKERS:*
+🎮 *GAME ACCOUNT CHECKERS & VOICES:*
 • \`${p}ml <id> <zone>\` - Mobile Legends (Passes, Server, Flag, Offers)
+• \`${p}tts <hero> <message>\` - MLBB Hero Voice Notes (Vale, Valir, etc.)
+• \`${p}tts list\` - View all 20+ MLBB hero voices
 • \`${p}genshin <uid>\` - Genshin Impact (Welkin Moon, BP, Server)
 • \`${p}hok <id>\` - Honor of Kings (Honor Pass, Cards, Offers)
 
@@ -37,7 +39,6 @@ Prefixes: \`. \` or \`, \` | Multi-Device Connected
 • *Admins:* 100% Protected (Never warned or kicked!)
 
 ℹ️ *UTILITIES & TOOLS:*
-• \`${p}tts <character> <text>\` - Anime Voice Notes (Goku, Gojo, Sukuna, Makima, Eren...)
 • \`${p}viewonce\` (or \`${p}videwonce\`) - Silently save View Once media to your inbox
 • \`${p}antidelete [on/off]\` - Toggle deleted messages recovery
 • \`${p}bot [on/off]\` - Turn bot on/off (Owner only)

@@ -661,77 +661,48 @@ async function runTests() {
   assert.strictEqual(moderator.getWarnings(mockGroup, warnTarget).count, 0, 'Warnings must be reset to 0');
   console.log('  ✅ Admin Warning: Warned up to 5th with admin name attribution, auto-kicked at 6th, and reset verified.');
 
-  // Test 18: Anime TTS Command (.tts)
-  console.log('\n▶ Test 18: Verifying Anime Voice Note Command (.tts)...');
+  // Test 18: Verifying Mobile Legends Hero Voice TTS (.tts)
+  console.log('\n▶ Test 18: Verifying Mobile Legends Hero Voice TTS (.tts)...');
   const ttsCmd = commandHandler.getCommand('tts');
-  assert(ttsCmd !== null, 'Command .tts must be registered');
-  assert.strictEqual(commandHandler.aliases.get('animetts'), 'tts', 'Alias animetts must map to tts');
-  assert.strictEqual(commandHandler.aliases.get('voice'), 'tts', 'Alias voice must map to tts');
-  assert.strictEqual(commandHandler.aliases.get('say'), 'tts', 'Alias say must map to tts');
+  assert(ttsCmd !== null, 'Command .tts must be loaded');
+  assert(commandHandler.aliases.get('mltts') === 'tts', 'Alias mltts must point to tts');
+  assert(commandHandler.aliases.get('herotts') === 'tts', 'Alias herotts must point to tts');
 
-  const { resolveCharacter, generateAnimeTts } = require('../lib/animeTts');
+  const { resolveHero, getHeroCatalog, generateHeroTTS } = require('../lib/heroVoices');
+  assert(resolveHero('vale') !== null, 'Vale must resolve');
+  assert(resolveHero('valir') !== null, 'Valir must resolve');
+  assert(resolveHero('gus') !== null, 'Gus must resolve to Gusion');
+  assert(resolveHero('layla') !== null, 'Layla must resolve');
 
-  // Verify character resolution & aliases
-  assert.strictEqual(resolveCharacter('goku')?.name, 'Son Goku', 'goku should resolve to Son Goku');
-  assert.strictEqual(resolveCharacter('dbz')?.name, 'Son Goku', 'dbz alias should resolve to Son Goku');
-  assert.strictEqual(resolveCharacter('gojo')?.name, 'Gojo Satoru', 'gojo should resolve to Gojo Satoru');
-  assert.strictEqual(resolveCharacter('sukuna')?.name, 'Ryomen Sukuna', 'sukuna should resolve to Ryomen Sukuna');
-  assert.strictEqual(resolveCharacter('sakuna')?.name, 'Ryomen Sukuna', 'sakuna typo alias should resolve to Ryomen Sukuna');
-  assert.strictEqual(resolveCharacter('makima')?.name, 'Makima', 'makima should resolve to Makima');
-  assert.strictEqual(resolveCharacter('eren')?.name, 'Eren Yeager', 'eren should resolve to Eren Yeager');
-  assert.strictEqual(resolveCharacter('naruto')?.name, 'Naruto Uzumaki', 'naruto should resolve to Naruto Uzumaki');
-  assert.strictEqual(resolveCharacter('vegeta')?.name, 'Vegeta', 'vegeta should resolve to Vegeta');
+  // Test catalog
+  const catalog = getHeroCatalog();
+  assert(catalog.includes('Vale') && catalog.includes('Valir'), 'Catalog must list Vale and Valir');
 
-  // Test 18a: Help / Usage when no args
+  // Test command execution: .tts list
   sentMessages.length = 0;
   await ttsCmd.execute({
     sock: mockSock,
-    msg: { key: { id: 'tts_msg_1', remoteJid: mockGroup } },
+    msg: { key: { id: 'test_tts_1' } },
     from: mockGroup,
-    args: []
+    args: ['list']
   });
-  assert(sentMessages.length === 1, 'Should send help message');
-  assert(sentMessages[0].content.text.includes('VIRUZ ANIME TTS'), 'Help message must contain VIRUZ ANIME TTS banner');
-  assert(sentMessages[0].content.text.includes('Goku'), 'Help must list Goku');
-  assert(sentMessages[0].content.text.includes('Gojo'), 'Help must list Gojo');
-  assert(sentMessages[0].content.text.includes('Sukuna'), 'Help must list Sukuna');
-  assert(sentMessages[0].content.text.includes('Makima'), 'Help must list Makima');
-  assert(sentMessages[0].content.text.includes('Eren'), 'Help must list Eren');
+  assert.strictEqual(sentMessages.length, 1, 'Catalog message must be sent');
+  assert(sentMessages[0].content.text.includes('HERO VOICE VOICENOTES'), 'Catalog header must be sent');
 
-  // Test 18b: Voice note generation with character specified (.tts goku Kamehameha!)
+  // Test command execution: .tts vale Wind will guide our path!
   sentMessages.length = 0;
   await ttsCmd.execute({
     sock: mockSock,
-    msg: { key: { id: 'tts_msg_2', remoteJid: mockGroup } },
+    msg: { key: { id: 'test_tts_2' } },
     from: mockGroup,
-    args: ['goku', 'Kamehameha!']
+    args: ['vale', 'Wind', 'will', 'guide', 'our', 'path!']
   });
-  assert(sentMessages.length === 1, 'Should send 1 audio message');
-  assert(Buffer.isBuffer(sentMessages[0].content.audio), 'Must send audio Buffer');
-  assert(sentMessages[0].content.audio.length > 500, 'Audio buffer must be valid audio (> 500 bytes)');
-  assert(
-    sentMessages[0].content.mimetype === 'audio/ogg; codecs=opus' || sentMessages[0].content.mimetype === 'audio/mpeg',
-    'Mimetype must be WhatsApp voice note compatible'
-  );
-  if (sentMessages[0].content.mimetype === 'audio/ogg; codecs=opus') {
-    assert.strictEqual(sentMessages[0].content.audio.slice(0, 4).toString(), 'OggS', 'Must have valid OggS container header');
-    assert.strictEqual(sentMessages[0].content.ptt, true, 'PTT must be true for WhatsApp voice note bubble');
-  } else {
-    assert.strictEqual(sentMessages[0].content.mimetype, 'audio/mpeg', 'Mimetype must be audio/mpeg');
-  }
-
-  // Test 18c: Voice note generation without character specified (.tts Hello there!) -> defaults to Goku
-  sentMessages.length = 0;
-  await ttsCmd.execute({
-    sock: mockSock,
-    msg: { key: { id: 'tts_msg_3', remoteJid: mockGroup } },
-    from: mockGroup,
-    args: ['Hello', 'there!']
-  });
-  assert(sentMessages.length === 1, 'Should send 1 audio message');
-  assert(Buffer.isBuffer(sentMessages[0].content.audio), 'Must send audio Buffer');
-  assert(typeof sentMessages[0].content.ptt === 'boolean', 'PTT must be boolean');
-  console.log('  ✅ Anime TTS (.tts): Registered, verified playable in WhatsApp without memory-heavy dependencies.');
+  assert(sentMessages.some(m => m.content.audio && m.content.ptt === true), 'Voice note must be sent with ptt: true');
+  const audioMsg = sentMessages.find(m => m.content.audio);
+  assert(Buffer.isBuffer(audioMsg.content.audio), 'Audio payload must be a Buffer');
+  assert(audioMsg.content.audio.length > 1000, 'Audio Buffer must contain voice data');
+  assert.strictEqual(audioMsg.content.mimetype, 'audio/mp4', 'Mimetype must be audio/mp4 for WhatsApp voice notes');
+  console.log('  ✅ Mobile Legends Hero Voice TTS: Vale voice note generated with ptt: true autoplay support.');
 
   console.log('\n🎉 ALL 18 AUTOMATED TESTS PASSED SUCCESSFULLY! 🎉\n');
 }
