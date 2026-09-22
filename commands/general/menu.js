@@ -30,7 +30,7 @@ Prefixes: \`. \` or \`, \` | Multi-Device Connected
 • \`${p}warn @user [reason]\` - Warn a member (Shows Admin Name, 6 warns = Kick)
 • \`${p}resetwarn @user\` - Reset member's warnings to 0
 • \`${p}kick @user\` - Kick member (Admins are protected!)
-• \`${p}add <number>\` - Add member via phone number
+• \`${p}add <number>\` - Add member via phone number (Admins & Members)
 • \`${p}welcome [on/off]\` - Toggle auto welcome & goodbye
 • \`${p}tagall [text]\` - Mention all group members
 • \`${p}hidetag [text]\` - Invisible mention all members
@@ -46,7 +46,6 @@ Prefixes: \`. \` or \`, \` | Multi-Device Connected
 ℹ️ *UTILITIES & TOOLS:*
 • \`${p}viewonce\` (or \`${p}videwonce\`) - Silently save View Once media to your inbox
 • \`${p}antidelete [on/off]\` - Toggle deleted messages recovery
-• \`${p}bot [on/off]\` - Turn bot on/off (Owner only)
 • \`${p}ping\` - Check bot response speed
 • \`${p}menu\` - Open this command list
 • \`${p}info\` - Bot status and host information

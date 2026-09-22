@@ -109,6 +109,9 @@ async function runTests() {
     },
     async groupMetadata(groupId) {
       return mockGroupMetadata;
+    },
+    async groupInviteCode(groupId) {
+      return 'TEST_INVITE_CODE';
     }
   };
 
@@ -809,7 +812,117 @@ async function runTests() {
 
   console.log('  ✅ Mobile Legends Real Hero Voices & Admin Controls (.tts on/off, .bot on/off) verified.');
 
-  console.log('\n🎉 ALL 18 AUTOMATED TESTS PASSED SUCCESSFULLY! 🎉\n');
+  // Test 19: Group Member Add Command (.add) & LID Admin Verification
+  console.log('\n▶ Test 19: Verifying .add Command (Open for Admins & Members) & LID Admin Handling...');
+  const addCmd = commandHandler.getCommand('add');
+  assert(addCmd !== null, '.add command must be registered');
+
+  // 1. Regular non-admin member adding a number
+  sentMessages.length = 0;
+  await addCmd.execute({
+    sock: mockSock,
+    msg: { key: { id: 'test_add_1' } },
+    from: mockGroup,
+    sender: '923112233445@s.whatsapp.net', // regular member
+    isGroup: true,
+    groupMetadata: mockGroupMetadata,
+    args: ['923119988770']
+  });
+  assert(sentMessages.length > 0, 'Message must be sent');
+  assert(sentMessages[0].content.text.includes('Successfully added @923119988770'), 'Regular member must be able to add a user');
+
+  // 2. Admin adding a number with spaces and plus
+  sentMessages.length = 0;
+  await addCmd.execute({
+    sock: mockSock,
+    msg: { key: { id: 'test_add_2' } },
+    from: mockGroup,
+    sender: '923116469820@s.whatsapp.net', // admin
+    isGroup: true,
+    groupMetadata: mockGroupMetadata,
+    args: ['+92', '311', '9988771']
+  });
+  assert(sentMessages[0].content.text.includes('Successfully added @923119988771'), 'Must parse spaced phone numbers correctly');
+
+  // 3. Pakistani local format (03xx) normalization
+  sentMessages.length = 0;
+  await addCmd.execute({
+    sock: mockSock,
+    msg: { key: { id: 'test_add_3' } },
+    from: mockGroup,
+    sender: '923112233445@s.whatsapp.net',
+    isGroup: true,
+    groupMetadata: mockGroupMetadata,
+    args: ['03119988772']
+  });
+  assert(sentMessages[0].content.text.includes('Successfully added @923119988772'), '03xx must normalize to 923xx');
+
+  // 4. Target already in group
+  sentMessages.length = 0;
+  await addCmd.execute({
+    sock: mockSock,
+    msg: { key: { id: 'test_add_4' } },
+    from: mockGroup,
+    sender: '923112233445@s.whatsapp.net',
+    isGroup: true,
+    groupMetadata: mockGroupMetadata,
+    args: ['923222222222'] // adminUser already in mockGroupMetadata
+  });
+  assert(sentMessages[0].content.text.includes('already a member'), 'Must detect existing group member');
+
+  // 5. Privacy 403 response handling
+  const mockSock403 = {
+    ...mockSock,
+    async groupParticipantsUpdate() {
+      return [{ status: '403' }];
+    }
+  };
+  sentMessages.length = 0;
+  await addCmd.execute({
+    sock: mockSock403,
+    msg: { key: { id: 'test_add_5' } },
+    from: mockGroup,
+    sender: '923112233445@s.whatsapp.net',
+    isGroup: true,
+    groupMetadata: mockGroupMetadata,
+    args: ['923441122334']
+  });
+  assert(sentMessages.some(m => m.content.text.includes('privacy settings') && m.content.text.includes('TEST_INVITE_CODE')), 'Must send invitation link when status is 403');
+
+  // 6. When bot is not an admin
+  const noAdminMetadata = {
+    ...mockGroupMetadata,
+    participants: [
+      { id: '923222222222@s.whatsapp.net', admin: 'admin' },
+      { id: botJid, admin: null } // bot is not admin
+    ]
+  };
+  sentMessages.length = 0;
+  await addCmd.execute({
+    sock: mockSock,
+    msg: { key: { id: 'test_add_6' } },
+    from: mockGroup,
+    sender: '923112233445@s.whatsapp.net',
+    isGroup: true,
+    groupMetadata: noAdminMetadata,
+    args: ['923441122334']
+  });
+  assert(sentMessages[0].content.text.includes('Bot is Not an Admin'), 'Must notify when bot is not an admin');
+
+  // 7. Verify isGroupAdmin with WhatsApp LID format
+  const lidGroupMetadata = {
+    participants: [
+      { id: '152345678901234@lid', jid: '923888777666@s.whatsapp.net', admin: 'admin' },
+      { id: '923999111222@s.whatsapp.net', admin: null }
+    ]
+  };
+  assert(moderator.isGroupAdmin('923888777666@s.whatsapp.net', lidGroupMetadata), 'isGroupAdmin must recognize admin via p.jid');
+  assert(moderator.isGroupAdmin('152345678901234@lid', lidGroupMetadata), 'isGroupAdmin must recognize admin via p.id LID');
+  assert.strictEqual(moderator.isGroupAdmin('923999111222@s.whatsapp.net', lidGroupMetadata), false, 'Regular member must not be recognized as admin');
+
+  console.log('  ✅ .add command (Everyone & Admins, formatting, privacy 403, bot-admin check) & LID admin verification passed.');
+
+  console.log('\n🎉 ALL 19 AUTOMATED TESTS PASSED SUCCESSFULLY! 🎉\n');
 }
 
 runTests().then(() => {
