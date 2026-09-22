@@ -3,14 +3,14 @@ const safety = require('../../lib/safety');
 
 module.exports = {
   name: 'tts',
-  aliases: ['mltts', 'herotts', 'vn', 'voicenote'],
+  aliases: ['tt', 'mltts', 'herotts', 'vn', 'voicenote'],
   category: 'games',
-  description: 'Convert text to Mobile Legends hero voice notes (Vale, Valir, Gusion, Layla, and more)',
-  usage: '.tts <hero> <message> | .tts list',
+  description: 'Convert text to Mobile Legends hero voice notes (Vale, Valir, Vexana, Gusion, Layla, and more)',
+  usage: '.tts <hero> <message> | .tt <hero> <message> | .tts list',
   async execute({ sock, msg, from, args }) {
     if (!args[0]) {
       return sock.sendMessage(from, {
-        text: '🎙️ *Mobile Legends Hero Voice TTS*\n\n*Format:* `.tts <hero> <message>`\n*Examples:*\n• `.tts vale Wind is my power!`\n• `.tts valir Everything shall burn to ashes!`\n• `.tts gusion Break the limits of speed!`\n• `.tts layla Keep it up, we can do it!`\n• `.tts list` (View all 20+ MLBB heroes)'
+        text: '🎙️ *Mobile Legends Hero Voice TTS (For Everyone)*\n\n*Format:* `.tts <hero> <message>` or `.tt <hero> <message>`\n*Examples:*\n• `.tts vale Wind is my power!`\n• `.tts valir Everything shall burn to ashes!`\n• `.tts vexana Fear the undead queen!`\n• `.tts gusion Break the limits of speed!`\n• `.tt layla Keep it up, we can do it!`\n• `.tts list` (View all 20+ MLBB heroes)'
       }, { quoted: msg });
     }
 

@@ -14,12 +14,15 @@ module.exports = {
 👋 *Welcome to VIRUZ WhatsApp Bot!*
 Prefixes: \`. \` or \`, \` | Multi-Device Connected
 
-🎮 *GAME ACCOUNT CHECKERS & VOICES:*
+🎮 *GAME ACCOUNT CHECKERS:*
 • \`${p}ml <id> <zone>\` - Mobile Legends (Passes, Server, Flag, Offers)
-• \`${p}tts <hero> <message>\` - MLBB Hero Voice Notes (Vale, Valir, etc.)
-• \`${p}tts list\` - View all 20+ MLBB hero voices
 • \`${p}genshin <uid>\` - Genshin Impact (Welkin Moon, BP, Server)
 • \`${p}hok <id>\` - Honor of Kings (Honor Pass, Cards, Offers)
+
+🎙️ *SMOOTH HERO VOICE TTS (FOR EVERYONE):*
+• \`${p}tts <hero> <message>\` (or \`${p}tt\`) - Playable MLBB Hero Voice Note
+  _Examples:_ \`${p}tts vale <text>\`, \`${p}tts valir <text>\`, \`${p}tts vexana <text>\`
+• \`${p}tts list\` - View all 20+ MLBB hero voices (Vale, Valir, Vexana, etc.)
 
 🛡️ *GROUP MODERATION (Admins Only):*
 • \`${p}warn @user [reason]\` - Warn a member (Shows Admin Name, 6 warns = Kick)
