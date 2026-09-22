@@ -19,12 +19,14 @@ Prefixes: \`. \` or \`, \` | Multi-Device Connected
 • \`${p}genshin <uid>\` - Genshin Impact (Welkin Moon, BP, Server)
 • \`${p}hok <id>\` - Honor of Kings (Honor Pass, Cards, Offers)
 
-🎙️ *SMOOTH HERO VOICE TTS (FOR EVERYONE):*
-• \`${p}tts <hero> <message>\` (or \`${p}tt\`) - Playable MLBB Hero Voice Note
-  _Examples:_ \`${p}tts vale <text>\`, \`${p}tts valir <text>\`, \`${p}tts vexana <text>\`
-• \`${p}tts list\` - View all 20+ MLBB hero voices (Vale, Valir, Vexana, etc.)
+🎙️ *REAL HERO VOICES & TTS (FOR EVERYONE):*
+• \`${p}tts <hero> [message]\` (or \`${p}tt\`) - Real MLBB Hero Voice & Voice Note
+  _Examples:_ \`${p}tts vale\`, \`${p}tts valir\`, \`${p}tts vexana\`
+• \`${p}tts list\` - Catalog of 20+ MLBB hero voices (Vale, Valir, Vexana, etc.)
 
 🛡️ *GROUP MODERATION (Admins Only):*
+• \`${p}bot [on/off]\` - Turn bot on or off in this group (Admins & Owner)
+• \`${p}tts [on/off]\` - Enable or disable TTS in this group (Admins & Owner)
 • \`${p}warn @user [reason]\` - Warn a member (Shows Admin Name, 6 warns = Kick)
 • \`${p}resetwarn @user\` - Reset member's warnings to 0
 • \`${p}kick @user\` - Kick member (Admins are protected!)

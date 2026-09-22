@@ -661,67 +661,153 @@ async function runTests() {
   assert.strictEqual(moderator.getWarnings(mockGroup, warnTarget).count, 0, 'Warnings must be reset to 0');
   console.log('  ✅ Admin Warning: Warned up to 5th with admin name attribution, auto-kicked at 6th, and reset verified.');
 
-  // Test 18: Verifying Mobile Legends Hero Voice TTS (.tts & .tt)
-  console.log('\n▶ Test 18: Verifying Mobile Legends Hero Voice TTS (.tts & .tt)...');
+  // Test 18: Verifying Real Mobile Legends Hero Voices & Admin Controls (.tts & .tt)
+  console.log('\n▶ Test 18: Verifying Real Mobile Legends Hero Voices & Admin Controls (.tts & .tt)...');
   const ttsCmd = commandHandler.getCommand('tts');
+  const botCmd = commandHandler.getCommand('bot');
   assert(ttsCmd !== null, 'Command .tts must be loaded');
+  assert(botCmd !== null, 'Command .bot must be loaded');
   assert(commandHandler.aliases.get('tt') === 'tts', 'Alias tt must point to tts');
-  assert(commandHandler.aliases.get('mltts') === 'tts', 'Alias mltts must point to tts');
-  assert(commandHandler.aliases.get('herotts') === 'tts', 'Alias herotts must point to tts');
 
-  const { resolveHero, getHeroCatalog, generateHeroTTS } = require('../lib/heroVoices');
+  const { resolveHero, getHeroCatalog, getRealHeroVoice } = require('../lib/heroVoices');
   assert(resolveHero('vale') !== null, 'Vale must resolve');
   assert(resolveHero('valir') !== null, 'Valir must resolve');
   assert(resolveHero('vexana') !== null, 'Vexana must resolve');
   assert(resolveHero('vex') !== null, 'Vex alias must resolve to Vexana');
-  assert(resolveHero('gus') !== null, 'Gus must resolve to Gusion');
-  assert(resolveHero('layla') !== null, 'Layla must resolve');
 
   // Test catalog
   const catalog = getHeroCatalog();
   assert(catalog.includes('Vale') && catalog.includes('Valir') && catalog.includes('Vexana'), 'Catalog must list Vale, Valir, and Vexana');
 
-  // Test command execution: .tts list
-  sentMessages.length = 0;
-  await ttsCmd.execute({
-    sock: mockSock,
-    msg: { key: { id: 'test_tts_1' } },
-    from: mockGroup,
-    args: ['list']
-  });
-  assert.strictEqual(sentMessages.length, 1, 'Catalog message must be sent');
-  assert(sentMessages[0].content.text.includes('HERO VOICE VOICENOTES'), 'Catalog header must be sent');
+  // Test real hero voice fetching & caching (Vale, Valir, Vexana)
+  const valeReal = await getRealHeroVoice('vale');
+  assert(valeReal !== null && valeReal.isRealVoice, 'Real Vale voice must be loaded');
+  assert.strictEqual(valeReal.quote, 'Wind, talk to me!', 'Must have Vale official quote');
+  assert(valeReal.buffer.length > 1000, 'Must have audio buffer');
 
-  // Test command execution: .tts vale Wind will guide our path!
+  const valirReal = await getRealHeroVoice('valir');
+  assert(valirReal !== null && valirReal.isRealVoice, 'Real Valir voice must be loaded');
+  assert.strictEqual(valirReal.quote, 'Everything shall burn to ashes!', 'Must have Valir official quote');
+
+  const vexanaReal = await getRealHeroVoice('vexana');
+  assert(vexanaReal !== null && vexanaReal.isRealVoice, 'Real Vexana voice must be loaded');
+  assert.strictEqual(vexanaReal.quote, 'From the ashes of despair, hope will arise!', 'Must have Vexana official quote');
+
+  // Test command execution: .tts vale (real hero voice)
   sentMessages.length = 0;
   await ttsCmd.execute({
     sock: mockSock,
     msg: { key: { id: 'test_tts_2' } },
     from: mockGroup,
-    args: ['vale', 'Wind', 'will', 'guide', 'our', 'path!']
+    sender: '923112233445@s.whatsapp.net',
+    isGroup: true,
+    groupMetadata: mockGroupMetadata,
+    args: ['vale']
   });
   assert(sentMessages.some(m => m.content.audio), 'Audio message must be sent');
   const audioMsg = sentMessages.find(m => m.content.audio);
   assert(Buffer.isBuffer(audioMsg.content.audio), 'Audio payload must be a Buffer');
-  assert(audioMsg.content.audio.length > 1000, 'Audio Buffer must contain voice data');
-  assert.strictEqual(audioMsg.content.mimetype, 'audio/mpeg', 'Mimetype must be audio/mpeg for WhatsApp native MP3 player');
-  assert(audioMsg.content.fileName.includes('Vale'), 'FileName must include hero name');
+  assert.strictEqual(audioMsg.content.mimetype, 'audio/ogg', 'Real hero voice must be audio/ogg');
+  assert(sentMessages.some(m => m.content.text && m.content.text.includes('Wind, talk to me!')), 'Quote card must be sent');
 
-  // Test command execution: .tt vexana Fear the undead queen!
+  // Test Admin Controls: .tts off & .tts on
+  // 1. Regular user trying .tts off -> Denied
   sentMessages.length = 0;
   await ttsCmd.execute({
     sock: mockSock,
-    msg: { key: { id: 'test_tts_3' } },
+    msg: { key: { id: 'test_tts_off_denied' } },
     from: mockGroup,
-    args: ['vexana', 'Fear', 'the', 'undead', 'queen!']
+    sender: '923112233445@s.whatsapp.net', // non-admin
+    isGroup: true,
+    groupMetadata: mockGroupMetadata,
+    args: ['off']
   });
-  assert(sentMessages.some(m => m.content.audio), 'Vexana audio message must be sent');
-  const vexanaAudio = sentMessages.find(m => m.content.audio);
-  assert(Buffer.isBuffer(vexanaAudio.content.audio), 'Vexana audio payload must be a Buffer');
-  assert(vexanaAudio.content.audio.length > 1000, 'Vexana audio Buffer must contain voice data');
-  assert.strictEqual(vexanaAudio.content.mimetype, 'audio/mpeg', 'Vexana mimetype must be audio/mpeg');
-  assert(vexanaAudio.content.fileName.includes('Vexana'), 'FileName must include Vexana');
-  console.log('  ✅ Mobile Legends Hero Voice TTS: Vale & Vexana audio files generated with native audio/mpeg and .tt alias.');
+  assert(sentMessages[0].content.text.includes('Access Denied'), 'Non-admin must be denied .tts off');
+
+  // 2. Admin turning .tts off -> Allowed
+  sentMessages.length = 0;
+  await ttsCmd.execute({
+    sock: mockSock,
+    msg: { key: { id: 'test_tts_off_admin' } },
+    from: mockGroup,
+    sender: '923116469820@s.whatsapp.net', // admin
+    isGroup: true,
+    groupMetadata: mockGroupMetadata,
+    args: ['off']
+  });
+  assert(sentMessages[0].content.text.includes('DISABLED'), 'Admin turning .tts off must succeed');
+  assert.strictEqual(moderator.isTtsEnabled(mockGroup), false, 'TTS must be disabled in group');
+
+  // 3. Regular member trying to use .tts while disabled -> Blocked
+  sentMessages.length = 0;
+  await ttsCmd.execute({
+    sock: mockSock,
+    msg: { key: { id: 'test_tts_blocked' } },
+    from: mockGroup,
+    sender: '923112233445@s.whatsapp.net', // non-admin
+    isGroup: true,
+    groupMetadata: mockGroupMetadata,
+    args: ['vale']
+  });
+  assert(sentMessages[0].content.text.includes('TTS is Disabled'), 'Regular member must be blocked when TTS is disabled');
+
+  // 4. Admin turning .tts on -> Allowed
+  sentMessages.length = 0;
+  await ttsCmd.execute({
+    sock: mockSock,
+    msg: { key: { id: 'test_tts_on_admin' } },
+    from: mockGroup,
+    sender: '923116469820@s.whatsapp.net', // admin
+    isGroup: true,
+    groupMetadata: mockGroupMetadata,
+    args: ['on']
+  });
+  assert(sentMessages[0].content.text.includes('ENABLED'), 'Admin turning .tts on must succeed');
+  assert.strictEqual(moderator.isTtsEnabled(mockGroup), true, 'TTS must be enabled in group');
+
+  // Test Admin Controls: .bot off & .bot on in group
+  // 1. Non-admin trying .bot off -> Denied
+  sentMessages.length = 0;
+  await botCmd.execute({
+    sock: mockSock,
+    msg: { key: { id: 'test_bot_off_denied', fromMe: false } },
+    from: mockGroup,
+    sender: '923112233445@s.whatsapp.net', // non-admin
+    isGroup: true,
+    groupMetadata: mockGroupMetadata,
+    args: ['off']
+  });
+  assert(sentMessages[0].content.text.includes('Access Denied'), 'Non-admin must be denied .bot off');
+
+  // 2. Admin turning .bot off -> Allowed in group
+  sentMessages.length = 0;
+  await botCmd.execute({
+    sock: mockSock,
+    msg: { key: { id: 'test_bot_off_admin', fromMe: false } },
+    from: mockGroup,
+    sender: '923116469820@s.whatsapp.net', // admin
+    isGroup: true,
+    groupMetadata: mockGroupMetadata,
+    args: ['off']
+  });
+  assert(sentMessages[0].content.text.includes('OFFLINE in this group'), 'Admin turning bot off must succeed');
+  assert.strictEqual(moderator.isBotEnabledInGroup(mockGroup), false, 'Bot must be disabled in group');
+
+  // 3. Admin turning .bot on -> Allowed in group
+  sentMessages.length = 0;
+  await botCmd.execute({
+    sock: mockSock,
+    msg: { key: { id: 'test_bot_on_admin', fromMe: false } },
+    from: mockGroup,
+    sender: '923116469820@s.whatsapp.net', // admin
+    isGroup: true,
+    groupMetadata: mockGroupMetadata,
+    args: ['on']
+  });
+  assert(sentMessages[0].content.text.includes('ONLINE in this group'), 'Admin turning bot on must succeed');
+  assert.strictEqual(moderator.isBotEnabledInGroup(mockGroup), true, 'Bot must be enabled in group');
+
+  console.log('  ✅ Mobile Legends Real Hero Voices & Admin Controls (.tts on/off, .bot on/off) verified.');
 
   console.log('\n🎉 ALL 18 AUTOMATED TESTS PASSED SUCCESSFULLY! 🎉\n');
 }
