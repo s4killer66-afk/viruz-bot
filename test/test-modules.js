@@ -680,6 +680,9 @@ async function runTests() {
   assert(resolveHero('naruto') !== null && resolveHero('naruto').id === 'naruto', "'naruto' must resolve to Naruto Uzumaki");
   assert(resolveHero('sukuna') !== null && resolveHero('sukuna').id === 'sukuna', "'sukuna' must resolve to Ryomen Sukuna");
   assert(resolveHero('luffy') !== null && resolveHero('luffy').id === 'luffy', "'luffy' must resolve to Monkey D. Luffy");
+  assert.strictEqual(resolveHero('vale'), null, "MLBB hero 'vale' must not be in anime TTS dictionary");
+  assert.strictEqual(resolveHero('vexana'), null, "MLBB hero 'vexana' must not be in anime TTS dictionary");
+  assert.strictEqual(resolveHero('alucard'), null, "MLBB hero 'alucard' must not be in anime TTS dictionary");
 
   const randVoice = getRandomAnimeVoice();
   assert(randVoice && randVoice.name && randVoice.emoji, 'getRandomAnimeVoice must return valid anime voice');
@@ -861,79 +864,7 @@ async function runTests() {
   );
   console.log('  ✅ Admin & Member Controls: .bot toggled by group admin and .add available to everyone verified.');
 
-  // Test 20: Verifying Sosuke Aizen Cloned Voice TTS & Startup Response
-  console.log('\n▶ Test 20: Verifying Sosuke Aizen Cloned Voice (.tts aizen & .bot on startup)...');
-  const { getAizenAuthenticBuffer } = require('../lib/heroVoices');
-  
-  // 1. Verify character resolution
-  const aizenChar = resolveHero('aizen');
-  assert(aizenChar !== null && aizenChar.id === 'aizen', "'aizen' must resolve to Sosuke Aizen");
-  assert.strictEqual(aizenChar.name, 'Sosuke Aizen', 'Character name must be Sosuke Aizen');
-  assert.strictEqual(aizenChar.emoji, '🦋', 'Character emoji must be 🦋');
-
-  const aiChar = resolveHero('ai');
-  assert(aiChar !== null && aiChar.id === 'aizen', "'ai' alias must resolve to Sosuke Aizen");
-
-  // 2. Verify authentic Aizen audio buffer on disk
-  const authenticBuf = getAizenAuthenticBuffer();
-  assert(Buffer.isBuffer(authenticBuf), 'Aizen authentic buffer must be a valid Buffer');
-  assert(authenticBuf.length > 50000, 'Aizen authentic buffer must be >50KB');
-
-  // 3. Verify .tts aizen (without message) sends authentic voice note
-  sentMessages.length = 0;
-  await ttsCmd.execute({
-    sock: mockSock,
-    msg: { key: { id: 'test_tts_aizen_authentic' } },
-    from: mockGroup,
-    sender: regularSender,
-    isGroup: true,
-    groupMetadata: mockGroupMetadata,
-    args: ['aizen']
-  });
-  assert(sentMessages.some(m => m.content.audio), 'Must send audio message for .tts aizen');
-  const aizenDirectAudio = sentMessages.find(m => m.content.audio);
-  assert.strictEqual(aizenDirectAudio.content.mimetype, 'audio/mpeg', 'Mimetype must be audio/mpeg');
-  assert(!aizenDirectAudio.content.ptt, 'Must NOT be PTT voice note to ensure 100% WhatsApp playback');
-  assert(aizenDirectAudio.content.fileName.includes('Aizen'), 'FileName must mention Aizen');
-
-  // 4. Verify custom speech generation: .tts aizen <message>
-  sentMessages.length = 0;
-  await ttsCmd.execute({
-    sock: mockSock,
-    msg: { key: { id: 'test_tts_aizen_custom' } },
-    from: mockGroup,
-    sender: regularSender,
-    isGroup: true,
-    groupMetadata: mockGroupMetadata,
-    args: ['aizen', 'Since', 'when', 'were', 'you', 'under', 'the', 'impression?']
-  });
-  assert(sentMessages.some(m => m.content.audio), 'Must send audio message for custom Aizen speech');
-  const aizenCustomAudio = sentMessages.find(m => m.content.audio);
-  assert.strictEqual(aizenCustomAudio.content.mimetype, 'audio/mpeg', 'Custom audio mimetype must be audio/mpeg');
-  assert(!aizenCustomAudio.content.ptt, 'Custom audio must NOT have ptt: true');
-  assert(aizenCustomAudio.content.audio.length > 1000, 'Custom audio buffer must contain voice data');
-
-  // 5. Verify .bot on dispatches text AND Aizen startup audio
-  sentMessages.length = 0;
-  await botCmd.execute({
-    sock: mockSock,
-    msg: { key: { id: 'test_bot_startup_aizen', fromMe: false } },
-    from: mockGroup,
-    sender: adminSender,
-    isGroup: true,
-    groupMetadata: mockGroupMetadata,
-    args: ['on']
-  });
-  const botOnText = sentMessages.find(m => m.content.text);
-  assert(botOnText && botOnText.content.text.includes('ONLINE'), 'Must send ONLINE confirmation text');
-  const botOnVoice = sentMessages.find(m => m.content.audio);
-  assert(botOnVoice, 'Must send Aizen startup audio on .bot on');
-  assert.strictEqual(botOnVoice.content.mimetype, 'audio/mpeg', 'Startup audio must be audio/mpeg');
-  assert(!botOnVoice.content.ptt, 'Startup audio must NOT have ptt: true');
-  assert.strictEqual(botOnVoice.content.fileName, 'aizen_startup.mp3', 'Startup audio file name must be aizen_startup.mp3');
-  console.log('  ✅ Aizen Cloned Voice: Resolution, authentic audio playback, custom speech, and .bot on startup verified.');
-
-  console.log('\n🎉 ALL 20 AUTOMATED TESTS PASSED SUCCESSFULLY! 🎉\n');
+  console.log('\n🎉 ALL 19 AUTOMATED TESTS PASSED SUCCESSFULLY! 🎉\n');
 }
 
 runTests().then(() => {

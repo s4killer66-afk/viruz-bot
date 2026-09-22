@@ -1,4 +1,4 @@
-const { resolveHero, generateHeroTTS, getHeroCatalog, getRandomAnimeVoice, getAizenAuthenticBuffer } = require('../../lib/heroVoices');
+const { resolveHero, generateHeroTTS, getHeroCatalog, getRandomAnimeVoice } = require('../../lib/heroVoices');
 const ttsState = require('../../lib/ttsState');
 const moderator = require('../../lib/groupModerator');
 const safety = require('../../lib/safety');
@@ -7,26 +7,24 @@ module.exports = {
   name: 'tts',
   aliases: ['tt', 'animetts', 'voicenote', 'vn'],
   category: 'games',
-  description: 'Convert text to iconic Anime voice notes (Aizen, Goku, Gojo, Sukuna, Naruto, etc.)',
-  usage: '.tts <character> <message> | .tts aizen <message> | .tts go <message> | .tts hd <char> <message> | .tts on | .tts off | .tts list',
+  description: 'Convert text to iconic Anime voice notes (Goku, Gojo, Sukuna, Naruto, etc.)',
+  usage: '.tts <character> <message> | .tts go <message> | .tts on | .tts off | .tts list',
   async execute({ sock, msg, from, sender, isGroup, groupMetadata, args }) {
     if (!args[0]) {
       return sock.sendMessage(from, {
         text: '🎙️ *Anime Voice TTS (Text-to-Speech)*\n\n' +
-              '*⚡ Cloned & Popular Anime Voices:*\n' +
-              '• `.tts aizen <message>` (Sosuke Aizen 🦋 - Cloned Voice)\n' +
-              '• `.tts ai <message>` (Aizen shortcut)\n' +
-              '• `.tts go <message>` (Son Goku 💥)\n' +
-              '• `.tts gojo <message>` (Gojo 🤞)\n' +
-              '• `.tts sukuna <message>` (Sukuna 🩸)\n' +
-              '• `.tts naruto <message>` (Naruto 🍥)\n' +
-              '• `.tts random <message>` (Random Anime Voice 🎲)\n\n' +
-              '*🎙️ Studio HD Mode (Voicevox):*\n' +
-              '• `.tts hd go <message>`\n\n' +
-              '*📋 Catalog & Controls:*\n' +
-              '• `.tts list` (View all 20+ anime voices)\n' +
-              '• `.tts on` - Enable TTS (Admins)\n' +
-              '• `.tts off` - Disable TTS (Admins)'
+              '*Format:* `.tts <character> <message>` or `.tt <character> <message>`\n' +
+              '*Examples:*\n' +
+              '• `.tts go Kamehameha!` (Son Goku 💥)\n' +
+              '• `.tts gojo Throughout heaven and earth, I alone am the honored one.` (Gojo 🤞)\n' +
+              '• `.tts sukuna Know your place, fool.` (Sukuna 🩸)\n' +
+              '• `.tts naruto I will never give up, dattebayo!` (Naruto 🍥)\n' +
+              '• `.tts luffy I am gonna be King of the Pirates!` (Luffy 👒)\n' +
+              '• `.tts random <message>` (Speaks in a random anime voice 🎲)\n' +
+              '• `.tts list` (View all 20+ anime voices)\n\n' +
+              '_Admin Controls:_\n' +
+              '• `.tts on` - Enable TTS in this group\n' +
+              '• `.tts off` - Disable TTS in this group'
       }, { quoted: msg });
     }
 
@@ -65,67 +63,32 @@ module.exports = {
     }
 
     // ── Subcommand: View list of anime voices ──
-    if (firstWord === 'list' || firstWord === 'voices' || firstWord === 'heroes' || firstWord === 'help') {
+    if (firstWord === 'list' || firstWord === 'voices' || firstWord === 'anime' || firstWord === 'characters' || firstWord === 'heroes' || firstWord === 'help') {
       const catalog = getHeroCatalog();
       return sock.sendMessage(from, { text: catalog }, { quoted: msg });
     }
 
-    // ── Check if HD mode is requested ──
-    let isHd = false;
-    let actualArgs = args;
-    if (firstWord === 'hd' || firstWord === 'studio') {
-      isHd = true;
-      actualArgs = args.slice(1);
-    }
-
-    if (!actualArgs[0]) {
-      return sock.sendMessage(from, {
-        text: '🎙️ *HD Anime Voice Mode*\n*Usage:* `.tts hd <character> <message>`\n*Example:* `.tts hd go Kamehameha!`'
-      }, { quoted: msg });
-    }
-
     // ── Determine Target Character and Speech Text ──
-    const charWord = actualArgs[0].toLowerCase();
     let targetCharacter = null;
     let messageText = '';
 
-    const matchedChar = resolveHero(charWord);
+    const matchedChar = resolveHero(firstWord);
     if (matchedChar) {
       targetCharacter = matchedChar;
-      messageText = actualArgs.slice(1).join(' ').trim();
+      messageText = args.slice(1).join(' ').trim();
     } else {
       // If first word is not a character name, pick a random anime voice
       targetCharacter = getRandomAnimeVoice();
-      messageText = actualArgs.join(' ').trim();
+      messageText = args.join(' ').trim();
     }
 
     if (!messageText) {
-      if (targetCharacter.id === 'aizen') {
-        const authenticSample = getAizenAuthenticBuffer();
-        if (authenticSample) {
-          try {
-            if (targetCharacter.emoji && msg?.key) {
-              await sock.sendMessage(from, { react: { text: targetCharacter.emoji, key: msg.key } });
-            }
-          } catch (e) {}
-          const sentAudio = await sock.sendMessage(from, {
-            audio: authenticSample,
-            mimetype: 'audio/mpeg',
-            fileName: 'Sosuke_Aizen.mp3'
-          }, { quoted: msg });
-          if (sentAudio?.key?.id) {
-            safety.markSentByBot(sentAudio.key.id);
-          }
-          return;
-        }
-      }
-
       return sock.sendMessage(from, {
         text: `❌ *Missing Message!*\nPlease provide the text for ${targetCharacter.emoji} *${targetCharacter.name}* to speak.\n*Example:* \`.tts ${targetCharacter.id} Let's do this!\``
       }, { quoted: msg });
     }
 
-    // React to user's message with character emoji immediately
+    // React to user's message with character emoji
     try {
       if (targetCharacter.emoji && msg?.key) {
         await sock.sendMessage(from, {
@@ -134,23 +97,15 @@ module.exports = {
       }
     } catch (e) {}
 
-    // Send instant recording presence so WhatsApp shows "🎤 Recording audio..." with zero delay
-    try {
-      if (sock?.sendPresenceUpdate) {
-        await sock.sendPresenceUpdate('recording', from);
-      }
-    } catch (e) {}
-
     try {
       // Generate voice audio buffer smoothly in memory (zero HYEHOST load)
-      const { buffer, character } = await generateHeroTTS(targetCharacter.id, messageText, { hd: isHd });
+      const { buffer, character } = await generateHeroTTS(targetCharacter.id, messageText);
 
-      // Send as playable WhatsApp audio message (without ptt to ensure 100% smooth playback on Android & iOS)
-      const cleanFileName = `${character.name.replace(/[^a-zA-Z0-9_-]/g, '_')}_voice.mp3`;
+      // Send as playable WhatsApp audio message with true audio/mpeg mimetype
       const sentAudio = await sock.sendMessage(from, {
         audio: buffer,
         mimetype: 'audio/mpeg',
-        fileName: cleanFileName
+        fileName: `${character.name}_voice.mp3`
       }, { quoted: msg });
 
       if (sentAudio?.key?.id) {
@@ -164,13 +119,6 @@ module.exports = {
       if (sentErr?.key?.id) {
         safety.markSentByBot(sentErr.key.id);
       }
-    } finally {
-      // Clear recording indicator
-      try {
-        if (sock?.sendPresenceUpdate) {
-          await sock.sendPresenceUpdate('paused', from);
-        }
-      } catch (e) {}
     }
   }
 };

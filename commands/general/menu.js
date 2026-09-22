@@ -19,10 +19,9 @@ Prefixes: \`. \` or \`, \` | Multi-Device Connected
 • \`${p}genshin <uid>\` - Genshin Impact (Welkin Moon, BP, Server)
 • \`${p}hok <id>\` - Honor of Kings (Honor Pass, Cards, Offers)
 
-🎙️ *ANIME VOICE TTS (LIGHTNING FAST ~1s):*
-• \`${p}tts <character> <message>\` (or \`${p}tt\`) - ⚡ Fast Anime Voice Note (~1s)
+🎙️ *ANIME VOICE TTS (FOR EVERYONE):*
+• \`${p}tts <character> <message>\` (or \`${p}tt\`) - Playable Anime Voice Audio
   _Examples:_ \`${p}tts go <text>\` (Goku 💥), \`${p}tts gojo <text>\` (🤞), \`${p}tts naruto <text>\` (🍥)
-• \`${p}tts hd <character> <message>\` - 🎙️ Studio Voicevox HD Voice Model
 • \`${p}tts random <message>\` - Speaks in a random anime voice 🎲
 • \`${p}tts list\` - View all 20+ Anime voices
 • \`${p}tts [on/off]\` - Enable or disable TTS in group (Admins only)
