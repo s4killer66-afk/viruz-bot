@@ -1,4 +1,4 @@
-const { resolveHero, generateHeroTTS, getHeroCatalog, getRandomAnimeVoice } = require('../../lib/heroVoices');
+const { resolveHero, generateHeroTTS, getHeroCatalog, getRandomAnimeVoice, getAizenAuthenticBuffer } = require('../../lib/heroVoices');
 const ttsState = require('../../lib/ttsState');
 const moderator = require('../../lib/groupModerator');
 const safety = require('../../lib/safety');
@@ -7,13 +7,15 @@ module.exports = {
   name: 'tts',
   aliases: ['tt', 'animetts', 'voicenote', 'vn'],
   category: 'games',
-  description: 'Convert text to iconic Anime voice notes (Goku, Gojo, Sukuna, Naruto, etc.)',
-  usage: '.tts <character> <message> | .tts go <message> | .tts hd <char> <message> | .tts on | .tts off | .tts list',
+  description: 'Convert text to iconic Anime voice notes (Aizen, Goku, Gojo, Sukuna, Naruto, etc.)',
+  usage: '.tts <character> <message> | .tts aizen <message> | .tts go <message> | .tts hd <char> <message> | .tts on | .tts off | .tts list',
   async execute({ sock, msg, from, sender, isGroup, groupMetadata, args }) {
     if (!args[0]) {
       return sock.sendMessage(from, {
         text: '🎙️ *Anime Voice TTS (Text-to-Speech)*\n\n' +
-              '*⚡ Fast Mode (Instant ~1s):*\n' +
+              '*⚡ Cloned & Popular Anime Voices:*\n' +
+              '• `.tts aizen <message>` (Sosuke Aizen 🦋 - Cloned Voice)\n' +
+              '• `.tts ai <message>` (Aizen shortcut)\n' +
               '• `.tts go <message>` (Son Goku 💥)\n' +
               '• `.tts gojo <message>` (Gojo 🤞)\n' +
               '• `.tts sukuna <message>` (Sukuna 🩸)\n' +
@@ -98,6 +100,27 @@ module.exports = {
     }
 
     if (!messageText) {
+      if (targetCharacter.id === 'aizen') {
+        const authenticSample = getAizenAuthenticBuffer();
+        if (authenticSample) {
+          try {
+            if (targetCharacter.emoji && msg?.key) {
+              await sock.sendMessage(from, { react: { text: targetCharacter.emoji, key: msg.key } });
+            }
+          } catch (e) {}
+          const sentAudio = await sock.sendMessage(from, {
+            audio: authenticSample,
+            mimetype: 'audio/mpeg',
+            fileName: 'Sosuke_Aizen_authentic.mp3',
+            ptt: true
+          }, { quoted: msg });
+          if (sentAudio?.key?.id) {
+            safety.markSentByBot(sentAudio.key.id);
+          }
+          return;
+        }
+      }
+
       return sock.sendMessage(from, {
         text: `❌ *Missing Message!*\nPlease provide the text for ${targetCharacter.emoji} *${targetCharacter.name}* to speak.\n*Example:* \`.tts ${targetCharacter.id} Let's do this!\``
       }, { quoted: msg });
@@ -123,11 +146,17 @@ module.exports = {
       // Generate voice audio buffer smoothly in memory (zero HYEHOST load)
       const { buffer, character } = await generateHeroTTS(targetCharacter.id, messageText, { hd: isHd });
 
-      // Send as playable WhatsApp audio message with true audio/mpeg mimetype
+      // Detect audio format (WAV or MP3)
+      const isWav = buffer.length > 4 && buffer.slice(0, 4).toString() === 'RIFF';
+      const audioMime = isWav ? 'audio/wav' : 'audio/mpeg';
+      const fileExt = isWav ? 'wav' : 'mp3';
+
+      // Send as playable WhatsApp voice note message
       const sentAudio = await sock.sendMessage(from, {
         audio: buffer,
-        mimetype: 'audio/mpeg',
-        fileName: `${character.name}_voice.mp3`
+        mimetype: audioMime,
+        fileName: `${character.name}_voice.${fileExt}`,
+        ptt: true
       }, { quoted: msg });
 
       if (sentAudio?.key?.id) {

@@ -6,6 +6,7 @@
 
 const safety = require('../../lib/safety');
 const moderator = require('../../lib/groupModerator');
+const { getAizenAuthenticBuffer } = require('../../lib/heroVoices');
 
 module.exports = {
   name: 'bot',
@@ -27,9 +28,26 @@ module.exports = {
 
     if (action === 'on' || action === 'enable' || action === '1') {
       safety.setBotEnabled(true);
-      return sock.sendMessage(from, {
+      const textMsg = await sock.sendMessage(from, {
         text: '✅ *VIRUZ Bot is now ONLINE!*\nAll commands, moderation, and features are active.'
       }, { quoted: msg });
+
+      // Send authentic Aizen startup voice note response
+      try {
+        const aizenAudio = getAizenAuthenticBuffer();
+        if (aizenAudio) {
+          await sock.sendMessage(from, {
+            audio: aizenAudio,
+            mimetype: 'audio/mpeg',
+            fileName: 'aizen_startup.mp3',
+            ptt: true
+          }, { quoted: msg });
+        }
+      } catch (audioErr) {
+        console.warn('[Bot On] Failed to send Aizen startup voice note:', audioErr.message);
+      }
+
+      return textMsg;
     }
 
     if (action === 'off' || action === 'disable' || action === '0') {
