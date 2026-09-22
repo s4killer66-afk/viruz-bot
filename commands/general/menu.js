@@ -11,49 +11,50 @@ module.exports = {
     const p = config.prefix;
 
     const body = `
-👋 *Welcome to VIRUZ WhatsApp Bot!*
-Prefixes: \`. \` or \`, \` | Multi-Device Connected
+👋 *Welcome to VIRUZ WhatsApp Bot*
+⚡ High-Speed • Zero-Lag System
+Prefixes: \`. \` or \`, \` | Connected
 
-🎮 *GAME ACCOUNT CHECKERS:*
-• \`${p}ml <id> <zone>\` - Mobile Legends (Passes, Server, Flag, Offers)
-• \`${p}genshin <uid>\` - Genshin Impact (Welkin Moon, BP, Server)
-• \`${p}hok <id>\` - Honor of Kings (Honor Pass, Cards, Offers)
+🎮 *GAME ACCOUNT CHECKER:*
+• \`${p}ml <id> <zone>\` - Mobile Legends (Player Info, Rank, Region, Passes)
 
 🎙️ *ANIME VOICE TTS (FOR EVERYONE):*
-• \`${p}goku <message>\` - Speak directly as Son Goku (💥)
-• \`${p}gojo <message>\` - Speak directly as Satoru Gojo (🤞)
-• \`${p}sukuna <message>\` - Speak directly as Ryomen Sukuna (🩸)
-• \`${p}tts <character> <message>\` (or \`${p}tt\`) - All 20+ Anime voices
+• \`${p}goku <message>\` - Son Goku (Super Saiyan 💥)
+• \`${p}gojo <message>\` - Satoru Gojo (The Honored One 🤞)
+• \`${p}sukuna <message>\` - Ryomen Sukuna (King of Curses 🩸)
+• \`${p}naruto <message>\` - Naruto Uzumaki (Seventh Hokage 🍥)
+• \`${p}luffy <message>\` - Monkey D. Luffy (Straw Hat 👒)
+• \`${p}tts <character> <message>\` - Speak as any Anime character
 • \`${p}tts random <message>\` - Speaks in a random anime voice 🎲
-• \`${p}tts list\` - View all 20+ Anime voices & commands
-• \`${p}tts [on/off]\` - Enable or disable TTS in group (Admins only)
+• \`${p}tts list\` - View all 20+ Anime characters & commands
+• \`${p}tts [on/off]\` - Toggle TTS in group (Admins only)
 
-👥 *GROUP PARTICIPATION (For Everyone):*
+👥 *GROUP PARTICIPATION:*
 • \`${p}add <number/@user>\` - Add or invite a member to the group
 
 🛡️ *GROUP MODERATION (Admins Only):*
-• \`${p}warn @user [reason]\` - Warn a member (Shows Admin Name, 6 warns = Kick)
+• \`${p}warn @user [reason]\` - Official warning (6 warns = Auto-Kick)
 • \`${p}resetwarn @user\` - Reset member's warnings to 0
-• \`${p}kick @user\` - Kick member (Admins are protected!)
-• \`${p}welcome [on/off]\` - Toggle auto welcome & goodbye
+• \`${p}kick @user\` - Remove member from group (Admins protected)
+• \`${p}welcome [on/off]\` - Toggle auto welcome & goodbye messages
 • \`${p}tagall [text]\` - Mention all group members
-• \`${p}hidetag [text]\` - Invisible mention all members
+• \`${p}hidetag [text]\` - Invisible announcement mention
 • \`${p}mute\` - Close group chat (admins only)
 • \`${p}unmute\` - Open group chat for everyone
-• \`${p}groupinfo\` - View group settings & spam thresholds
+• \`${p}groupinfo\` - View group settings & active thresholds
 
 ⚙️ *ANTI-SPAM SYSTEM (Automatic):*
-• *Sticker Spam:* ${config.antiSpam.stickerWarningThreshold}th sticker = Warning ⚠️ | ${config.antiSpam.stickerKickThreshold}th = Auto-Kick 🚫
-• *Message Spam:* ${config.antiSpam.messageWarningThreshold}th repeat = Warning ⚠️ | ${config.antiSpam.messageKickThreshold}th = Auto-Kick 🚫
-• *Admins:* 100% Protected (Never warned or kicked!)
+• *Stickers:* ${config.antiSpam.stickerWarningThreshold}th = Warning ⚠️ | ${config.antiSpam.stickerKickThreshold}th = Auto-Kick 🚫
+• *Messages:* ${config.antiSpam.messageWarningThreshold}th repeat = Warning ⚠️ | ${config.antiSpam.messageKickThreshold}th = Auto-Kick 🚫
+• *Admins:* 100% Protected (Never warned or kicked)
 
 ℹ️ *UTILITIES & TOOLS:*
-• \`${p}bot [on/off]\` - Turn bot on/off (Group Admins & Owner)
-• \`${p}viewonce\` (or \`${p}videwonce\`) - Silently save View Once media to your inbox
+• \`${p}bot [on/off]\` - Turn bot on/off in this group
+• \`${p}viewonce\` (or \`${p}vv\`) - Silently save View Once media to your inbox
 • \`${p}antidelete [on/off]\` - Toggle deleted messages recovery
-• \`${p}ping\` - Check bot response speed
-• \`${p}menu\` - Open this command list
+• \`${p}ping\` - Check bot response speed & latency
 • \`${p}info\` - Bot status and host information
+• \`${p}menu\` - Open this command list
 `.trim();
 
     const output = atlasBox('VIRUZ MAIN MENU', body);

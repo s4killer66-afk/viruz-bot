@@ -30,16 +30,14 @@ async function testServer() {
   assert(mlData.formattedText.includes('Mobile Legends'), 'Formatted text should contain Mobile Legends');
   console.log('  ✅ POST /api/test-game (.ml) verified.');
 
-  // 3. Test /api/test-game for Genshin Impact & Rejection of PUBG
+  // 3. Test /api/test-game rejects removed games (Genshin, PUBG, etc.)
   const giRes = await fetch(`${baseUrl}/api/test-game`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ game: 'genshin', query: '700012345' })
   });
-  assert.strictEqual(giRes.status, 200, 'Genshin test endpoint should return 200');
-  const giData = await giRes.json();
-  assert(giData.formattedText.includes('Genshin Impact'), 'Formatted text should contain Genshin Impact');
-  console.log('  ✅ POST /api/test-game (.genshin) verified.');
+  assert.strictEqual(giRes.status, 400, 'Genshin should return 400 unsupported');
+  console.log('  ✅ POST /api/test-game (.genshin) correctly rejected as unsupported.');
 
   const pubgRes = await fetch(`${baseUrl}/api/test-game`, {
     method: 'POST',

@@ -4,9 +4,7 @@
 
 const assert = require('assert');
 const {
-  checkMobileLegends,
-  checkGenshinImpact,
-  checkHonorOfKings
+  checkMobileLegends
 } = require('../lib/gameChecker');
 const moderator = require('../lib/groupModerator');
 const welcomeHandler = require('../lib/welcomeHandler');
@@ -18,15 +16,15 @@ async function runTests() {
 
   // Test 1: Command Handler Loading
   console.log('▶ Test 1: Verifying Command Handler Loading...');
-  assert(commandHandler.commands.size >= 9, `Expected at least 9 commands, found ${commandHandler.commands.size}`);
+  assert(commandHandler.commands.size >= 7, `Expected at least 7 commands, found ${commandHandler.commands.size}`);
   assert(commandHandler.getCommand('ml') !== null, 'Command .ml should exist');
-  assert.strictEqual(commandHandler.getCommand('pubg'), null, 'Command .pubg should be removed');
-  assert.strictEqual(commandHandler.getCommand('coc'), null, 'Command .coc should be removed');
-  assert(commandHandler.getCommand('genshin') !== null, 'Command .genshin should exist');
-  assert(commandHandler.getCommand('hok') !== null, 'Command .hok should exist');
+  assert.strictEqual(commandHandler.getCommand('pubg'), null, 'Command .pubg must be removed');
+  assert.strictEqual(commandHandler.getCommand('coc'), null, 'Command .coc must be removed');
+  assert.strictEqual(commandHandler.getCommand('genshin'), null, 'Command .genshin must be removed');
+  assert.strictEqual(commandHandler.getCommand('hok'), null, 'Command .hok must be removed');
   assert(commandHandler.getCommand('kick') !== null, 'Command .kick should exist');
   assert(commandHandler.getCommand('add') !== null, 'Command .add should exist');
-  console.log('  ✅ Command Handler: Active commands loaded; .coc & .pubg confirmed removed.');
+  console.log('  ✅ Command Handler: Active commands loaded; other games (pubg, coc, genshin, hok) confirmed removed.');
 
   // Test 2: Mobile Legends Checker (Accurate Passes & Country Flag)
   console.log('\n▶ Test 2: Verifying Mobile Legends (.ml) Checker...');
@@ -38,9 +36,8 @@ async function runTests() {
   assert(mlRes.includes('Weekly Diamond Pass (WDP)'), 'ML output should include Weekly Diamond Pass spec');
   assert(mlRes.includes('Starlight Membership'), 'ML output should include Starlight Membership spec');
   assert(mlRes.includes('Twilight Pass'), 'ML output should include Twilight Pass spec');
-  assert(mlRes.includes('First Recharge Season Bonus'), 'ML output should include First Recharge bonus');
-  assert(mlRes.includes('Exact remaining pass days'), 'ML output should include transparent privacy note');
-  console.log('  ✅ Mobile Legends output verified with accurate pass specifications & flag.');
+  assert(mlRes.includes('First Recharge Bonus'), 'ML output should include First Recharge bonus');
+  console.log('  ✅ Mobile Legends output verified with accurate player information & professional layout.');
 
   // Test 3: PUBG Mobile Complete Removal
   console.log('\n▶ Test 3: Verifying PUBG Mobile (.pubg) Complete Removal...');
@@ -50,30 +47,29 @@ async function runTests() {
   console.log('  ✅ PUBG Mobile removal verified.');
 
   // Test 4: Live Account Validation & Invalid Account Rejection
-  console.log('\n▶ Test 4: Verifying Game Checkers Reject Invalid Accounts...');
-  let hokErr = null;
+  console.log('\n▶ Test 4: Verifying Live Account Validation & Rejection of Invalid ID...');
+  let invalidMlErr = null;
   try {
-    await checkHonorOfKings('1234567890');
+    await checkMobileLegends('99999999999', '99999');
   } catch (e) {
-    hokErr = e.message;
+    invalidMlErr = e.message;
   }
-  assert(hokErr && (hokErr.includes('Account Not Found') || hokErr.includes('unreachable')), 'Invalid HOK ID must return Account Not Found or unreachable error');
+  assert(invalidMlErr && invalidMlErr.includes('Not Found'), 'Invalid MLBB ID must return Account Not Found error');
   console.log('  ✅ Live Account Validation: Invalid accounts properly rejected without fake mock data.');
 
-  // Test 5: Genshin Impact Checker
-  console.log('\n▶ Test 5: Verifying Genshin Impact (.genshin) Checker...');
-  const giRes = await checkGenshinImpact('700012345');
-  assert(giRes.includes('Genshin Impact'), 'Genshin output should mention Genshin Impact');
-  assert(giRes.includes('700012345'), 'Genshin output should contain UID');
-  assert(giRes.includes('Blessing of the Welkin Moon'), 'Genshin output should contain Welkin');
-  assert(giRes.includes('Gnostic Hymn'), 'Genshin output should contain Battle Pass');
-  console.log('  ✅ Genshin Impact output verified.');
+  // Test 5: Genshin Impact (.genshin) Complete Removal
+  console.log('\n▶ Test 5: Verifying Genshin Impact (.genshin) Complete Removal...');
+  assert.strictEqual(commandHandler.getCommand('genshin'), null, 'Command .genshin must not be registered');
+  assert.strictEqual(commandHandler.aliases.get('gi'), undefined, 'Alias gi must not be registered');
+  assert.strictEqual(commandHandler.aliases.get('genshinimpact'), undefined, 'Alias genshinimpact must not be registered');
+  console.log('  ✅ Genshin Impact removal verified.');
 
-  // Test 6: Clash of Clans Command Completely Removed
-  console.log('\n▶ Test 6: Verifying Clash of Clans (.coc) Complete Removal...');
+  // Test 6: Honor of Kings (.hok) & Clash of Clans (.coc) Complete Removal
+  console.log('\n▶ Test 6: Verifying Honor of Kings (.hok) & Clash of Clans (.coc) Complete Removal...');
+  assert.strictEqual(commandHandler.getCommand('hok'), null, 'Command .hok must not be registered');
+  assert.strictEqual(commandHandler.aliases.get('honorofkings'), undefined, 'Alias honorofkings must not be registered');
   assert.strictEqual(commandHandler.getCommand('coc'), null, 'Command .coc must not be registered');
-  assert.strictEqual(commandHandler.aliases.get('coc'), undefined, 'Alias coc must not be registered');
-  console.log('  ✅ Clash of Clans removal verified.');
+  console.log('  ✅ Honor of Kings & Clash of Clans removal verified (Only MLBB kept).');
 
   // Test 7: Group Moderation & Sticker Spam Logic
   console.log('\n▶ Test 7: Verifying Sticker Spam Auto-Kick Logic...');

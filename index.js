@@ -16,11 +16,7 @@ const path = require('path');
 const axios = require('axios');
 const config = require('./config');
 const waClient = require('./lib/baileys');
-const {
-  checkMobileLegends,
-  checkGenshinImpact,
-  checkHonorOfKings,
-} = require('./lib/gameChecker');
+const { checkMobileLegends } = require('./lib/gameChecker');
 
 const app = express();
 app.use(cors());
@@ -113,22 +109,12 @@ app.post('/api/test-game', async (req, res) => {
     let result = '';
     const cleanQuery = query.trim();
 
-    switch (game.toLowerCase()) {
-      case 'ml': {
-        const parts = cleanQuery.split(/\s+/);
-        result = await checkMobileLegends(parts[0], parts[1]);
-        break;
-      }
-      case 'genshin': {
-        result = await checkGenshinImpact(cleanQuery);
-        break;
-      }
-      case 'hok': {
-        result = await checkHonorOfKings(cleanQuery);
-        break;
-      }
-      default:
-        return res.status(400).json({ success: false, message: 'Unsupported game type.' });
+    const g = game.toLowerCase();
+    if (g === 'ml' || g === 'mlbb' || g === 'mobilelegends') {
+      const parts = cleanQuery.split(/\s+/);
+      result = await checkMobileLegends(parts[0], parts[1]);
+    } else {
+      return res.status(400).json({ success: false, message: 'Only Mobile Legends (.ml) is supported.' });
     }
 
     res.json({ success: true, formattedText: result });
