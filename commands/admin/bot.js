@@ -39,8 +39,7 @@ module.exports = {
           await sock.sendMessage(from, {
             audio: aizenAudio,
             mimetype: 'audio/mpeg',
-            fileName: 'aizen_startup.mp3',
-            ptt: true
+            fileName: 'aizen_startup.mp3'
           }, { quoted: msg });
         }
       } catch (audioErr) {

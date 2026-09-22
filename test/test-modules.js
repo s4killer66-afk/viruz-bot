@@ -892,10 +892,28 @@ async function runTests() {
   });
   assert(sentMessages.some(m => m.content.audio), 'Must send audio message for .tts aizen');
   const aizenDirectAudio = sentMessages.find(m => m.content.audio);
-  assert.strictEqual(aizenDirectAudio.content.ptt, true, 'Must send as a PTT voice note');
+  assert.strictEqual(aizenDirectAudio.content.mimetype, 'audio/mpeg', 'Mimetype must be audio/mpeg');
+  assert(!aizenDirectAudio.content.ptt, 'Must NOT be PTT voice note to ensure 100% WhatsApp playback');
   assert(aizenDirectAudio.content.fileName.includes('Aizen'), 'FileName must mention Aizen');
 
-  // 4. Verify .bot on dispatches text AND Aizen startup voice note
+  // 4. Verify custom speech generation: .tts aizen <message>
+  sentMessages.length = 0;
+  await ttsCmd.execute({
+    sock: mockSock,
+    msg: { key: { id: 'test_tts_aizen_custom' } },
+    from: mockGroup,
+    sender: regularSender,
+    isGroup: true,
+    groupMetadata: mockGroupMetadata,
+    args: ['aizen', 'Since', 'when', 'were', 'you', 'under', 'the', 'impression?']
+  });
+  assert(sentMessages.some(m => m.content.audio), 'Must send audio message for custom Aizen speech');
+  const aizenCustomAudio = sentMessages.find(m => m.content.audio);
+  assert.strictEqual(aizenCustomAudio.content.mimetype, 'audio/mpeg', 'Custom audio mimetype must be audio/mpeg');
+  assert(!aizenCustomAudio.content.ptt, 'Custom audio must NOT have ptt: true');
+  assert(aizenCustomAudio.content.audio.length > 1000, 'Custom audio buffer must contain voice data');
+
+  // 5. Verify .bot on dispatches text AND Aizen startup audio
   sentMessages.length = 0;
   await botCmd.execute({
     sock: mockSock,
@@ -909,10 +927,11 @@ async function runTests() {
   const botOnText = sentMessages.find(m => m.content.text);
   assert(botOnText && botOnText.content.text.includes('ONLINE'), 'Must send ONLINE confirmation text');
   const botOnVoice = sentMessages.find(m => m.content.audio);
-  assert(botOnVoice, 'Must send Aizen startup voice note on .bot on');
-  assert.strictEqual(botOnVoice.content.ptt, true, 'Startup audio must be a PTT voice note');
+  assert(botOnVoice, 'Must send Aizen startup audio on .bot on');
+  assert.strictEqual(botOnVoice.content.mimetype, 'audio/mpeg', 'Startup audio must be audio/mpeg');
+  assert(!botOnVoice.content.ptt, 'Startup audio must NOT have ptt: true');
   assert.strictEqual(botOnVoice.content.fileName, 'aizen_startup.mp3', 'Startup audio file name must be aizen_startup.mp3');
-  console.log('  ✅ Aizen Cloned Voice: Resolution, authentic audio playback, and .bot on startup voice note verified.');
+  console.log('  ✅ Aizen Cloned Voice: Resolution, authentic audio playback, custom speech, and .bot on startup verified.');
 
   console.log('\n🎉 ALL 20 AUTOMATED TESTS PASSED SUCCESSFULLY! 🎉\n');
 }

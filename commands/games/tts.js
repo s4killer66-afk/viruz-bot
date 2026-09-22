@@ -111,8 +111,7 @@ module.exports = {
           const sentAudio = await sock.sendMessage(from, {
             audio: authenticSample,
             mimetype: 'audio/mpeg',
-            fileName: 'Sosuke_Aizen_authentic.mp3',
-            ptt: true
+            fileName: 'Sosuke_Aizen.mp3'
           }, { quoted: msg });
           if (sentAudio?.key?.id) {
             safety.markSentByBot(sentAudio.key.id);
@@ -146,17 +145,12 @@ module.exports = {
       // Generate voice audio buffer smoothly in memory (zero HYEHOST load)
       const { buffer, character } = await generateHeroTTS(targetCharacter.id, messageText, { hd: isHd });
 
-      // Detect audio format (WAV or MP3)
-      const isWav = buffer.length > 4 && buffer.slice(0, 4).toString() === 'RIFF';
-      const audioMime = isWav ? 'audio/wav' : 'audio/mpeg';
-      const fileExt = isWav ? 'wav' : 'mp3';
-
-      // Send as playable WhatsApp voice note message
+      // Send as playable WhatsApp audio message (without ptt to ensure 100% smooth playback on Android & iOS)
+      const cleanFileName = `${character.name.replace(/[^a-zA-Z0-9_-]/g, '_')}_voice.mp3`;
       const sentAudio = await sock.sendMessage(from, {
         audio: buffer,
-        mimetype: audioMime,
-        fileName: `${character.name}_voice.${fileExt}`,
-        ptt: true
+        mimetype: 'audio/mpeg',
+        fileName: cleanFileName
       }, { quoted: msg });
 
       if (sentAudio?.key?.id) {
