@@ -792,7 +792,45 @@ async function runTests() {
   const randAudio = sentMessages.find(m => m.content.audio);
   assert(Buffer.isBuffer(randAudio.content.audio), 'Random audio payload must be a Buffer');
   assert.strictEqual(randAudio.content.mimetype, 'audio/mpeg', 'Random audio mimetype must be audio/mpeg');
-  console.log('  ✅ Anime Voice TTS: Goku (.tts go) & random anime voice notes verified with .tts on/off admin controls.');
+
+  // Test direct character command: .goku Kamehameha!
+  sentMessages.length = 0;
+  await ttsCmd.execute({
+    sock: mockSock,
+    msg: { key: { id: 'test_direct_goku' } },
+    from: mockGroup,
+    sender: regularSender,
+    isGroup: true,
+    groupMetadata: mockGroupMetadata,
+    args: ['Kamehameha!'],
+    commandName: 'goku'
+  });
+  assert(sentMessages.some(m => m.content.audio), 'Direct .goku command must send audio');
+  const directGokuAudio = sentMessages.find(m => m.content.audio);
+  assert(directGokuAudio.content.fileName.includes('Goku'), 'Direct .goku audio filename must be Goku');
+
+  // Test direct character command: .gojo Hollow Purple!
+  sentMessages.length = 0;
+  await ttsCmd.execute({
+    sock: mockSock,
+    msg: { key: { id: 'test_direct_gojo' } },
+    from: mockGroup,
+    sender: regularSender,
+    isGroup: true,
+    groupMetadata: mockGroupMetadata,
+    args: ['Hollow', 'Purple!'],
+    commandName: 'gojo'
+  });
+  assert(sentMessages.some(m => m.content.audio), 'Direct .gojo command must send audio');
+  const directGojoAudio = sentMessages.find(m => m.content.audio);
+  assert(directGojoAudio.content.fileName.includes('Gojo'), 'Direct .gojo audio filename must be Gojo');
+
+  // Test command handler aliases routing
+  assert.strictEqual(commandHandler.getCommand('goku'), ttsCmd, "commandHandler must route 'goku' to tts command");
+  assert.strictEqual(commandHandler.getCommand('gojo'), ttsCmd, "commandHandler must route 'gojo' to tts command");
+  assert.strictEqual(commandHandler.getCommand('sukuna'), ttsCmd, "commandHandler must route 'sukuna' to tts command");
+  assert.strictEqual(commandHandler.getCommand('naruto'), ttsCmd, "commandHandler must route 'naruto' to tts command");
+  console.log('  ✅ Anime Voice TTS: Direct commands (.goku, .gojo, .sukuna) & aliases verified without Google woman fallback.');
 
   // Test 19: Verifying .bot Command Admin Access & .add for Everyone
   console.log('\n▶ Test 19: Verifying .bot Command Admin Access & .add for Everyone...');
@@ -864,7 +902,29 @@ async function runTests() {
   );
   console.log('  ✅ Admin & Member Controls: .bot toggled by group admin and .add available to everyone verified.');
 
-  console.log('\n🎉 ALL 19 AUTOMATED TESTS PASSED SUCCESSFULLY! 🎉\n');
+  // Test 20: Verifying HYEHOST Server Load & Memory Optimizations
+  console.log('\n▶ Test 20: Verifying HYEHOST Server Load & Memory Optimizations...');
+  const groupMetadataCache = require('../lib/groupMetadataCache');
+
+  // 1. Verify groupMetadataCache stores and retrieves without redundant calls
+  groupMetadataCache.flush();
+  groupMetadataCache.set('1203630011223344@g.us', { id: '1203630011223344@g.us', subject: 'Speed Test Group' });
+  const cachedMeta = await groupMetadataCache.getGroupMetadata(mockSock, '1203630011223344@g.us');
+  assert.strictEqual(cachedMeta.subject, 'Speed Test Group', 'groupMetadataCache must retrieve cached metadata instantly');
+
+  // Invalidate test
+  groupMetadataCache.invalidate('1203630011223344@g.us');
+  assert.strictEqual(groupMetadataCache.cache.has('1203630011223344@g.us'), false, 'Cache invalidation must purge entry');
+
+  // 2. Verify antiDelete media buffer cap
+  assert.strictEqual(antiDelete.MAX_MEDIA_CACHE, 30, 'AntiDelete media cache must be capped at 30 items to protect RAM');
+
+  // 3. Verify messageStore memory cap
+  assert.strictEqual(messageStore.cache.options.maxKeys, 3000, 'MessageStore must be capped at 3000 keys to prevent container OOM');
+  assert.strictEqual(messageStore.cache.options.stdTTL, 14400, 'MessageStore TTL must be 4 hours');
+  console.log('  ✅ Server Load & Memory Optimization: Metadata caching, 30-item media buffer cap, and lightweight store verified.');
+
+  console.log('\n🎉 ALL 20 AUTOMATED TESTS PASSED SUCCESSFULLY! 🎉\n');
 }
 
 runTests().then(() => {

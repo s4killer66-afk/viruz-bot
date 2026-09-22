@@ -27,7 +27,7 @@ app.use(cors());
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 
-// ── 24/7 Keep-Alive Engine for Free Cloud Containers (Back4App / Render) ──
+// ── 24/7 Keep-Alive Engine (Only enabled if explicitly configured to avoid NAT loopback hangs) ──
 let keepAliveTimer = null;
 let detectedPublicUrl = process.env.APP_URL || null;
 
@@ -35,31 +35,23 @@ function startKeepAlive(url) {
   if (keepAliveTimer || !url) return;
   detectedPublicUrl = url.replace(/\/+$/, '');
   console.log(`[KeepAlive] 🟢 Starting 24/7 self-ping loop for: ${detectedPublicUrl}`);
-  
-  // Ping public URL every 2 minutes (120,000ms) to prevent cloud container from going to sleep
+
+  // Ping public URL every 5 minutes (300,000ms) with short timeout
   keepAliveTimer = setInterval(async () => {
     try {
       const pingUrl = `${detectedPublicUrl}/api/status`;
-      await axios.get(pingUrl, { timeout: 15000 });
-      console.log(`[KeepAlive] ✅ Ping successful to keep container active (${new Date().toLocaleTimeString()})`);
+      await axios.get(pingUrl, { timeout: 5000 });
+      console.log(`[KeepAlive] ✅ Ping successful (${new Date().toLocaleTimeString()})`);
     } catch (err) {
-      console.log(`[KeepAlive] Ping note:`, err.message);
+      // Non-blocking log
     }
-  }, 120000);
+  }, 300000);
 }
 
-// Auto-detect public URL from the first web request to keep container awake forever
-app.use((req, res, next) => {
-  if (!detectedPublicUrl && req.headers.host) {
-    const host = req.headers['x-forwarded-host'] || req.headers.host;
-    if (!host.includes('localhost') && !host.includes('127.0.0.1')) {
-      const proto = req.headers['x-forwarded-proto'] || req.protocol || 'https';
-      const fullUrl = `${proto}://${host}`;
-      startKeepAlive(fullUrl);
-    }
-  }
-  next();
-});
+// Only enable keepalive if explicitly requested via environment variable (e.g. for Render free tier)
+if (process.env.ENABLE_KEEP_ALIVE === 'true' && process.env.APP_URL) {
+  startKeepAlive(process.env.APP_URL);
+}
 
 // 1. Connection Status API
 app.get('/api/status', (req, res) => {

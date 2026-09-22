@@ -1,25 +1,108 @@
-const { resolveHero, generateHeroTTS, getHeroCatalog, getRandomAnimeVoice } = require('../../lib/heroVoices');
+const { resolveHero, generateHeroTTS, getHeroCatalog, getRandomAnimeVoice, ANIME_VOICES } = require('../../lib/heroVoices');
 const ttsState = require('../../lib/ttsState');
 const moderator = require('../../lib/groupModerator');
 const safety = require('../../lib/safety');
 
+// Compile all anime character IDs and aliases as direct command aliases
+const characterAliases = [];
+for (const char of Object.values(ANIME_VOICES)) {
+  characterAliases.push(char.id);
+  if (Array.isArray(char.aliases)) {
+    for (const a of char.aliases) {
+      characterAliases.push(a);
+    }
+  }
+}
+
+const ALL_ALIASES = Array.from(new Set(['tt', 'animetts', 'voicenote', 'vn', ...characterAliases]));
+
 module.exports = {
   name: 'tts',
-  aliases: ['tt', 'animetts', 'voicenote', 'vn'],
+  aliases: ALL_ALIASES,
   category: 'games',
   description: 'Convert text to iconic Anime voice notes (Goku, Gojo, Sukuna, Naruto, etc.)',
-  usage: '.tts <character> <message> | .tts go <message> | .tts on | .tts off | .tts list',
-  async execute({ sock, msg, from, sender, isGroup, groupMetadata, args }) {
+  usage: '.tts <character> <message> | .goku <message> | .gojo <message> | .sukuna <message> | .tts on | .tts off | .tts list',
+  async execute({ sock, msg, from, sender, isGroup, groupMetadata, args, commandName }) {
+    const activeCmd = (commandName || 'tts').toLowerCase();
+    const isDirectCharacterCmd = activeCmd !== 'tts' && activeCmd !== 'tt' && activeCmd !== 'animetts' && activeCmd !== 'voicenote' && activeCmd !== 'vn';
+
+    const firstWord = (args[0] || '').toLowerCase();
+    const isAdminToggle = !isDirectCharacterCmd && (firstWord === 'on' || firstWord === 'enable' || firstWord === 'off' || firstWord === 'disable');
+
+    // ── Check if TTS is disabled in this group (applies to both .tts and direct commands like .goku) ──
+    if (!isAdminToggle && !ttsState.isTtsEnabled(from)) {
+      return sock.sendMessage(from, {
+        text: '⚠️ *TTS is Currently Disabled!*\nText-to-speech has been turned off by an admin in this group.\n_Ask a group admin to enable it using `.tts on`._'
+      }, { quoted: msg });
+    }
+
+    // ── Direct Character Command (.goku <message>, .gojo <message>, .sukuna <message>, etc.) ──
+    if (isDirectCharacterCmd) {
+      const targetCharacter = resolveHero(activeCmd);
+      if (!targetCharacter) {
+        return;
+      }
+
+      const messageText = args.join(' ').trim();
+      if (!messageText) {
+        return sock.sendMessage(from, {
+          text: `❌ *Missing Message!*\nPlease provide what ${targetCharacter.emoji} *${targetCharacter.name}* should say.\n*Example:* \`.${activeCmd} Let's do this!\``
+        }, { quoted: msg });
+      }
+
+      // 1. Immediate WhatsApp presence indicator: "recording audio..."
+      if (sock && typeof sock.sendPresenceUpdate === 'function') {
+        sock.sendPresenceUpdate('recording', from).catch(() => {});
+      }
+
+      // 2. React to user's message with character emoji
+      try {
+        if (targetCharacter.emoji && msg?.key) {
+          await sock.sendMessage(from, {
+            react: { text: targetCharacter.emoji, key: msg.key }
+          });
+        }
+      } catch (e) {}
+
+      try {
+        // Generate authentic anime Voicevox audio buffer smoothly in memory
+        const { buffer, character } = await generateHeroTTS(targetCharacter.id, messageText);
+        const sentAudio = await sock.sendMessage(from, {
+          audio: buffer,
+          mimetype: 'audio/mpeg',
+          fileName: `${character.name}_voice.mp3`
+        }, { quoted: msg });
+
+        if (sentAudio?.key?.id) {
+          safety.markSentByBot(sentAudio.key.id);
+        }
+      } catch (err) {
+        console.error(`[TTS Error] Failed to generate ${targetCharacter.name} voice:`, err.message);
+        const sentErr = await sock.sendMessage(from, {
+          text: `❌ *Failed to generate ${targetCharacter.name} voice:* ${err.message}`
+        }, { quoted: msg });
+        if (sentErr?.key?.id) {
+          safety.markSentByBot(sentErr.key.id);
+        }
+      }
+      return;
+    }
+
+    // ── Standard .tts Command ──
     if (!args[0]) {
       return sock.sendMessage(from, {
         text: '🎙️ *Anime Voice TTS (Text-to-Speech)*\n\n' +
-              '*Format:* `.tts <character> <message>` or `.tt <character> <message>`\n' +
+              '*Direct Commands:* (Fastest & direct!)\n' +
+              '• `.goku <message>` - Son Goku 💥\n' +
+              '• `.gojo <message>` - Satoru Gojo 🤞\n' +
+              '• `.sukuna <message>` - Ryomen Sukuna 🩸\n' +
+              '• `.naruto <message>` - Naruto Uzumaki 🍥\n' +
+              '• `.luffy <message>` - Monkey D. Luffy 👒\n' +
+              '• `.zoro <message>` - Roronoa Zoro ⚔️\n\n' +
+              '*General Format:* `.tts <character> <message>` or `.tt <character> <message>`\n' +
               '*Examples:*\n' +
-              '• `.tts go Kamehameha!` (Son Goku 💥)\n' +
-              '• `.tts gojo Throughout heaven and earth, I alone am the honored one.` (Gojo 🤞)\n' +
-              '• `.tts sukuna Know your place, fool.` (Sukuna 🩸)\n' +
-              '• `.tts naruto I will never give up, dattebayo!` (Naruto 🍥)\n' +
-              '• `.tts luffy I am gonna be King of the Pirates!` (Luffy 👒)\n' +
+              '• `.tts goku Kamehameha!`\n' +
+              '• `.tts gojo Throughout heaven and earth, I alone am the honored one.`\n' +
               '• `.tts random <message>` (Speaks in a random anime voice 🎲)\n' +
               '• `.tts list` (View all 20+ anime voices)\n\n' +
               '_Admin Controls:_\n' +
@@ -28,10 +111,8 @@ module.exports = {
       }, { quoted: msg });
     }
 
-    const firstWord = args[0].toLowerCase();
-
     // ── Admin Subcommand: .tts on / .tts off ──
-    if (firstWord === 'on' || firstWord === 'enable' || firstWord === 'off' || firstWord === 'disable') {
+    if (isAdminToggle) {
       const isOwner = safety.isOwner(sender) || msg.key.fromMe;
       const isAdmin = isGroup && moderator.isGroupAdmin(sender, groupMetadata);
 
@@ -46,20 +127,13 @@ module.exports = {
 
       if (shouldEnable) {
         return sock.sendMessage(from, {
-          text: '🟢 *TTS Enabled!*\nText-to-speech anime voice generation is now active for everyone in this group!\n_Try:_ `.tts go Hello everyone!`'
+          text: '🟢 *TTS Enabled!*\nText-to-speech anime voice generation is now active for everyone in this group!\n_Try:_ `.goku Hello everyone!` or `.tts go Hello everyone!`'
         }, { quoted: msg });
       } else {
         return sock.sendMessage(from, {
           text: '🔴 *TTS Disabled!*\nText-to-speech voice generation has been turned OFF in this group.\n_Group admins can re-enable it anytime with `.tts on`._'
         }, { quoted: msg });
       }
-    }
-
-    // ── Check if TTS is disabled in this group ──
-    if (!ttsState.isTtsEnabled(from)) {
-      return sock.sendMessage(from, {
-        text: '⚠️ *TTS is Currently Disabled!*\nText-to-speech has been turned off by an admin in this group.\n_Ask a group admin to enable it using `.tts on`._'
-      }, { quoted: msg });
     }
 
     // ── Subcommand: View list of anime voices ──
@@ -88,7 +162,12 @@ module.exports = {
       }, { quoted: msg });
     }
 
-    // React to user's message with character emoji
+    // 1. Immediate WhatsApp presence indicator: "recording audio..."
+    if (sock && typeof sock.sendPresenceUpdate === 'function') {
+      sock.sendPresenceUpdate('recording', from).catch(() => {});
+    }
+
+    // 2. React to user's message with character emoji
     try {
       if (targetCharacter.emoji && msg?.key) {
         await sock.sendMessage(from, {

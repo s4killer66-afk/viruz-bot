@@ -20,10 +20,12 @@ Prefixes: \`. \` or \`, \` | Multi-Device Connected
 • \`${p}hok <id>\` - Honor of Kings (Honor Pass, Cards, Offers)
 
 🎙️ *ANIME VOICE TTS (FOR EVERYONE):*
-• \`${p}tts <character> <message>\` (or \`${p}tt\`) - Playable Anime Voice Audio
-  _Examples:_ \`${p}tts go <text>\` (Goku 💥), \`${p}tts gojo <text>\` (🤞), \`${p}tts naruto <text>\` (🍥)
+• \`${p}goku <message>\` - Speak directly as Son Goku (💥)
+• \`${p}gojo <message>\` - Speak directly as Satoru Gojo (🤞)
+• \`${p}sukuna <message>\` - Speak directly as Ryomen Sukuna (🩸)
+• \`${p}tts <character> <message>\` (or \`${p}tt\`) - All 20+ Anime voices
 • \`${p}tts random <message>\` - Speaks in a random anime voice 🎲
-• \`${p}tts list\` - View all 20+ Anime voices
+• \`${p}tts list\` - View all 20+ Anime voices & commands
 • \`${p}tts [on/off]\` - Enable or disable TTS in group (Admins only)
 
 👥 *GROUP PARTICIPATION (For Everyone):*
