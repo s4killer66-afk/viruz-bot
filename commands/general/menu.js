@@ -37,6 +37,7 @@ Prefixes: \`. \` or \`, \` | Multi-Device Connected
 • *Admins:* 100% Protected (Never warned or kicked!)
 
 ℹ️ *UTILITIES & TOOLS:*
+• \`${p}tts <character> <text>\` - Anime Voice Notes (Goku, Gojo, Sukuna, Makima, Eren...)
 • \`${p}viewonce\` (or \`${p}videwonce\`) - Silently save View Once media to your inbox
 • \`${p}antidelete [on/off]\` - Toggle deleted messages recovery
 • \`${p}bot [on/off]\` - Turn bot on/off (Owner only)

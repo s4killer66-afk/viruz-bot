@@ -661,7 +661,71 @@ async function runTests() {
   assert.strictEqual(moderator.getWarnings(mockGroup, warnTarget).count, 0, 'Warnings must be reset to 0');
   console.log('  ✅ Admin Warning: Warned up to 5th with admin name attribution, auto-kicked at 6th, and reset verified.');
 
-  console.log('\n🎉 ALL 17 AUTOMATED TESTS PASSED SUCCESSFULLY! 🎉\n');
+  // Test 18: Anime TTS Command (.tts)
+  console.log('\n▶ Test 18: Verifying Anime Voice Note Command (.tts)...');
+  const ttsCmd = commandHandler.getCommand('tts');
+  assert(ttsCmd !== null, 'Command .tts must be registered');
+  assert.strictEqual(commandHandler.aliases.get('animetts'), 'tts', 'Alias animetts must map to tts');
+  assert.strictEqual(commandHandler.aliases.get('voice'), 'tts', 'Alias voice must map to tts');
+  assert.strictEqual(commandHandler.aliases.get('say'), 'tts', 'Alias say must map to tts');
+
+  const { resolveCharacter, generateAnimeTts } = require('../lib/animeTts');
+
+  // Verify character resolution & aliases
+  assert.strictEqual(resolveCharacter('goku')?.name, 'Son Goku', 'goku should resolve to Son Goku');
+  assert.strictEqual(resolveCharacter('dbz')?.name, 'Son Goku', 'dbz alias should resolve to Son Goku');
+  assert.strictEqual(resolveCharacter('gojo')?.name, 'Gojo Satoru', 'gojo should resolve to Gojo Satoru');
+  assert.strictEqual(resolveCharacter('sukuna')?.name, 'Ryomen Sukuna', 'sukuna should resolve to Ryomen Sukuna');
+  assert.strictEqual(resolveCharacter('sakuna')?.name, 'Ryomen Sukuna', 'sakuna typo alias should resolve to Ryomen Sukuna');
+  assert.strictEqual(resolveCharacter('makima')?.name, 'Makima', 'makima should resolve to Makima');
+  assert.strictEqual(resolveCharacter('eren')?.name, 'Eren Yeager', 'eren should resolve to Eren Yeager');
+  assert.strictEqual(resolveCharacter('naruto')?.name, 'Naruto Uzumaki', 'naruto should resolve to Naruto Uzumaki');
+  assert.strictEqual(resolveCharacter('vegeta')?.name, 'Vegeta', 'vegeta should resolve to Vegeta');
+
+  // Test 18a: Help / Usage when no args
+  sentMessages.length = 0;
+  await ttsCmd.execute({
+    sock: mockSock,
+    msg: { key: { id: 'tts_msg_1', remoteJid: mockGroup } },
+    from: mockGroup,
+    args: []
+  });
+  assert(sentMessages.length === 1, 'Should send help message');
+  assert(sentMessages[0].content.text.includes('VIRUZ ANIME TTS'), 'Help message must contain VIRUZ ANIME TTS banner');
+  assert(sentMessages[0].content.text.includes('Goku'), 'Help must list Goku');
+  assert(sentMessages[0].content.text.includes('Gojo'), 'Help must list Gojo');
+  assert(sentMessages[0].content.text.includes('Sukuna'), 'Help must list Sukuna');
+  assert(sentMessages[0].content.text.includes('Makima'), 'Help must list Makima');
+  assert(sentMessages[0].content.text.includes('Eren'), 'Help must list Eren');
+
+  // Test 18b: Voice note generation with character specified (.tts goku Kamehameha!)
+  sentMessages.length = 0;
+  await ttsCmd.execute({
+    sock: mockSock,
+    msg: { key: { id: 'tts_msg_2', remoteJid: mockGroup } },
+    from: mockGroup,
+    args: ['goku', 'Kamehameha!']
+  });
+  assert(sentMessages.length === 1, 'Should send 1 audio message');
+  assert(Buffer.isBuffer(sentMessages[0].content.audio), 'Must send audio Buffer');
+  assert(sentMessages[0].content.audio.length > 1000, 'Audio buffer must be valid audio (> 1000 bytes)');
+  assert.strictEqual(sentMessages[0].content.mimetype, 'audio/mp4', 'Mimetype must be audio/mp4');
+  assert.strictEqual(sentMessages[0].content.ptt, true, 'PTT must be true for WhatsApp voice note bubble');
+
+  // Test 18c: Voice note generation without character specified (.tts Hello there!) -> defaults to Goku
+  sentMessages.length = 0;
+  await ttsCmd.execute({
+    sock: mockSock,
+    msg: { key: { id: 'tts_msg_3', remoteJid: mockGroup } },
+    from: mockGroup,
+    args: ['Hello', 'there!']
+  });
+  assert(sentMessages.length === 1, 'Should send 1 audio message');
+  assert(Buffer.isBuffer(sentMessages[0].content.audio), 'Must send audio Buffer');
+  assert.strictEqual(sentMessages[0].content.ptt, true, 'PTT must be true for voice note');
+  console.log('  ✅ Anime TTS (.tts): Registered, aliases verified, help displayed, and voice note generated as PTT audio bubble.');
+
+  console.log('\n🎉 ALL 18 AUTOMATED TESTS PASSED SUCCESSFULLY! 🎉\n');
 }
 
 runTests().then(() => {
