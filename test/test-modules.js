@@ -601,26 +601,28 @@ async function runTests() {
   assert(warnText1.includes('Admin Ali'), 'Warning message must attribute the warning to the admin name');
   assert(warnText1.includes('923112233445'), 'Warning message must mention target user');
   assert(warnText1.includes('Bad behavior in chat'), 'Warning message must show the reason');
-  assert(warnText1.includes('1 / 3'), 'Warning count must show 1 / 3');
+  assert(warnText1.includes('1 / 6'), 'Warning count must show 1 / 6');
   assert(sentMessages[0].content.mentions.includes(warnTarget), 'Target must be in mentions');
 
-  // 5. Issue 2nd warning
-  sentMessages.length = 0;
-  await warnCmd.execute({
-    sock: mockSock,
-    msg: mockWarnMsg1,
-    from: mockGroup,
-    isGroup: true,
-    sender: adminSender,
-    groupMetadata: mockGroupMetadata,
-    botJid,
-    args: ['@923112233445', 'Second warning'],
-    commandName: 'warn'
-  });
-  assert(sentMessages[0].content.text.includes('2 / 3'), 'Warning count must show 2 / 3');
-  assert.strictEqual(kickedUsers.length, 0, 'User should not be kicked at 2nd warning');
+  // 5. Issue 2nd through 5th warnings
+  for (let w = 2; w <= 5; w++) {
+    sentMessages.length = 0;
+    await warnCmd.execute({
+      sock: mockSock,
+      msg: mockWarnMsg1,
+      from: mockGroup,
+      isGroup: true,
+      sender: adminSender,
+      groupMetadata: mockGroupMetadata,
+      botJid,
+      args: ['@923112233445', `Warning number ${w}`],
+      commandName: 'warn'
+    });
+    assert(sentMessages[0].content.text.includes(`${w} / 6`), `Warning count must show ${w} / 6`);
+    assert.strictEqual(kickedUsers.length, 0, `User should not be kicked at warning ${w}`);
+  }
 
-  // 6. Issue 3rd warning -> AUTO-KICK triggered!
+  // 6. Issue 6th warning -> AUTO-KICK triggered!
   sentMessages.length = 0;
   await warnCmd.execute({
     sock: mockSock,
@@ -630,12 +632,13 @@ async function runTests() {
     sender: adminSender,
     groupMetadata: mockGroupMetadata,
     botJid,
-    args: ['@923112233445', 'Final strike'],
+    args: ['@923112233445', 'Final 6th strike'],
     commandName: 'warn'
   });
-  assert(kickedUsers.includes(warnTarget), 'User must be kicked on 3rd warning');
+  assert(kickedUsers.includes(warnTarget), 'User must be kicked on 6th warning');
   assert(sentMessages[0].content.text.includes('FINAL WARNING & AUTO-KICK'), 'Must show final warning and kick banner');
-  assert(sentMessages[0].content.text.includes('Admin Ali'), 'Must show admin attribution on 3rd warning');
+  assert(sentMessages[0].content.text.includes('6 / 6'), 'Must show 6 / 6 limit exceeded');
+  assert(sentMessages[0].content.text.includes('Admin Ali'), 'Must show admin attribution on 6th warning');
 
   // 7. Test reset warnings (.warn reset or .resetwarn)
   sentMessages.length = 0;
@@ -654,8 +657,9 @@ async function runTests() {
     commandName: 'resetwarn'
   });
   assert(sentMessages[0].content.text.includes('WARNINGS RESET'), 'Must show warnings reset message');
+  assert(sentMessages[0].content.text.includes('0 / 6'), 'Must show reset to 0 / 6');
   assert.strictEqual(moderator.getWarnings(mockGroup, warnTarget).count, 0, 'Warnings must be reset to 0');
-  console.log('  ✅ Admin Warning: Warned at 1st & 2nd with admin name attribution, auto-kicked at 3rd, and reset verified.');
+  console.log('  ✅ Admin Warning: Warned up to 5th with admin name attribution, auto-kicked at 6th, and reset verified.');
 
   console.log('\n🎉 ALL 17 AUTOMATED TESTS PASSED SUCCESSFULLY! 🎉\n');
 }

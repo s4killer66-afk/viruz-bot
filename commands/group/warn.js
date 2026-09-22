@@ -6,7 +6,7 @@ module.exports = {
   name: 'warn',
   aliases: ['warning', 'warnuser', 'resetwarn', 'unwarn'],
   category: 'group',
-  description: 'Warn a group member with admin attribution (Shows Admin Name, auto-kicks at 3 warnings)',
+  description: 'Warn a group member with admin attribution (Shows Admin Name, auto-kicks at 6 warnings)',
   usage: '.warn @user [reason] | .warn reset @user',
   async execute({ sock, msg, from, isGroup, sender, groupMetadata, botJid, args, commandName }) {
     if (!isGroup) {
@@ -60,8 +60,8 @@ module.exports = {
       const resetBody = `
 👤 *User:* @${targetPhone}
 👮‍♂️ *Reset By (Admin):* ${adminDisplay}
-🔄 *Status:* Warnings cleared (was ${previousCount}/3).
-✅ User warning count has been reset to [ 0 / 3 ].
+🔄 *Status:* Warnings cleared (was ${previousCount}/${moderator.maxWarnings}).
+✅ User warning count has been reset to [ 0 / ${moderator.maxWarnings} ].
 `.trim();
 
       const output = atlasBox('WARNINGS RESET', resetBody, 'VIRUZ • GROUP MODERATION');
@@ -92,7 +92,7 @@ module.exports = {
     // Add warning
     const result = moderator.addWarning(from, targetJid, sender, adminName, reason);
 
-    // ── 3rd Warning: AUTO KICK ──
+    // ── Max Warning (6th): AUTO KICK ──
     if (result.isMax) {
       let kickSuccess = false;
       try {
@@ -105,8 +105,8 @@ module.exports = {
       }
 
       const kickActionText = kickSuccess
-        ? 'User has reached 3 warnings and has been automatically kicked from the group.'
-        : 'User reached 3 warnings (Auto-kick failed: Ensure bot has Admin rights!).';
+        ? `User has reached ${result.max} warnings and has been automatically kicked from the group.`
+        : `User reached ${result.max} warnings (Auto-kick failed: Ensure bot has Admin rights!).`;
 
       const finalBody = `
 👤 *Warned User:* @${targetPhone}

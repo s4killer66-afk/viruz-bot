@@ -20,7 +20,7 @@ Prefixes: \`. \` or \`, \` | Multi-Device Connected
 • \`${p}hok <id>\` - Honor of Kings (Honor Pass, Cards, Offers)
 
 🛡️ *GROUP MODERATION (Admins Only):*
-• \`${p}warn @user [reason]\` - Warn a member (Shows Admin Name, 3 warns = Kick)
+• \`${p}warn @user [reason]\` - Warn a member (Shows Admin Name, 6 warns = Kick)
 • \`${p}resetwarn @user\` - Reset member's warnings to 0
 • \`${p}kick @user\` - Kick member (Admins are protected!)
 • \`${p}add <number>\` - Add member via phone number
