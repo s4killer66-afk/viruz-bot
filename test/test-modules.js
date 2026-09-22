@@ -700,11 +700,12 @@ async function runTests() {
     from: mockGroup,
     args: ['vale', 'Wind', 'will', 'guide', 'our', 'path!']
   });
-  assert(sentMessages.some(m => m.content.audio && m.content.ptt === true), 'Voice note must be sent with ptt: true');
+  assert(sentMessages.some(m => m.content.audio), 'Audio message must be sent');
   const audioMsg = sentMessages.find(m => m.content.audio);
   assert(Buffer.isBuffer(audioMsg.content.audio), 'Audio payload must be a Buffer');
   assert(audioMsg.content.audio.length > 1000, 'Audio Buffer must contain voice data');
-  assert.strictEqual(audioMsg.content.mimetype, 'audio/mp4', 'Mimetype must be audio/mp4 for WhatsApp voice notes');
+  assert.strictEqual(audioMsg.content.mimetype, 'audio/mpeg', 'Mimetype must be audio/mpeg for WhatsApp native MP3 player');
+  assert(audioMsg.content.fileName.includes('Vale'), 'FileName must include hero name');
 
   // Test command execution: .tt vexana Fear the undead queen!
   sentMessages.length = 0;
@@ -714,11 +715,13 @@ async function runTests() {
     from: mockGroup,
     args: ['vexana', 'Fear', 'the', 'undead', 'queen!']
   });
-  assert(sentMessages.some(m => m.content.audio && m.content.ptt === true), 'Vexana voice note must be sent with ptt: true');
+  assert(sentMessages.some(m => m.content.audio), 'Vexana audio message must be sent');
   const vexanaAudio = sentMessages.find(m => m.content.audio);
   assert(Buffer.isBuffer(vexanaAudio.content.audio), 'Vexana audio payload must be a Buffer');
   assert(vexanaAudio.content.audio.length > 1000, 'Vexana audio Buffer must contain voice data');
-  console.log('  ✅ Mobile Legends Hero Voice TTS: Vale & Vexana voice notes generated with ptt: true and .tt alias.');
+  assert.strictEqual(vexanaAudio.content.mimetype, 'audio/mpeg', 'Vexana mimetype must be audio/mpeg');
+  assert(vexanaAudio.content.fileName.includes('Vexana'), 'FileName must include Vexana');
+  console.log('  ✅ Mobile Legends Hero Voice TTS: Vale & Vexana audio files generated with native audio/mpeg and .tt alias.');
 
   console.log('\n🎉 ALL 18 AUTOMATED TESTS PASSED SUCCESSFULLY! 🎉\n');
 }

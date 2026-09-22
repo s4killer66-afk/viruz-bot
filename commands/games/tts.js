@@ -55,11 +55,13 @@ module.exports = {
       // Generate hero voice audio buffer
       const { buffer, hero } = await generateHeroTTS(targetHero.id, messageText);
 
-      // Send as auto-playable WhatsApp Voice Note (Push-to-Talk)
+      // Send as playable WhatsApp audio with authentic MP3 mimetype
+      // Using audio/mpeg without ptt: true prevents the WhatsApp ExoPlayer/AVPlayer decoding crash
+      // ("audio not available because something went wrong") on Android and iOS devices
       const sentAudio = await sock.sendMessage(from, {
         audio: buffer,
-        mimetype: 'audio/mp4',
-        ptt: true
+        mimetype: 'audio/mpeg',
+        fileName: `${targetHero.name}_voice.mp3`
       }, { quoted: msg });
 
       if (sentAudio?.key?.id) {
