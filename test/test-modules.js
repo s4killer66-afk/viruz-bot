@@ -544,7 +544,120 @@ async function runTests() {
   assert.strictEqual(emptyProto, null, 'Non-existent ID should return null safely');
   console.log('  ✅ MessageStore: Correctly provides message proto for Signal retry requests.');
 
-  console.log('\n🎉 ALL 16 AUTOMATED TESTS PASSED SUCCESSFULLY! 🎉\n');
+  // Test 17: Verifying Admin Warning Command (.warn)
+  console.log('\n▶ Test 17: Verifying Admin Warning Command (.warn & admin attribution)...');
+  const warnCmd = commandHandler.getCommand('warn');
+  assert(warnCmd !== null, 'Command .warn must be loaded');
+  assert(commandHandler.aliases.get('warning') === 'warn', 'Alias warning must point to warn');
+  assert(commandHandler.aliases.get('resetwarn') === 'warn', 'Alias resetwarn must point to warn');
+
+  const warnTarget = '923112233445@s.whatsapp.net';
+  const adminSender = '923116469820@s.whatsapp.net';
+  mockGroupMetadata.participants.push({ id: warnTarget, admin: null });
+
+  // 1. Admin protection: Admins cannot be warned
+  const adminWarnCheck = moderator.canWarnUser(adminSender, botJid, mockGroupMetadata);
+  assert.strictEqual(adminWarnCheck.allowed, false, 'Admins must be protected from warnings');
+  assert(adminWarnCheck.reason.includes('Admin Protection'), 'Should mention Admin Protection');
+
+  // 2. Bot protection: Bot cannot warn itself
+  const botWarnCheck = moderator.canWarnUser(botJid, botJid, mockGroupMetadata);
+  assert.strictEqual(botWarnCheck.allowed, false, 'Bot cannot warn itself');
+
+  // 3. Regular member can be warned
+  const regularWarnCheck = moderator.canWarnUser(warnTarget, botJid, mockGroupMetadata);
+  assert.strictEqual(regularWarnCheck.allowed, true, 'Regular members can be warned');
+
+  // 4. Issue 1st warning via command
+  sentMessages.length = 0;
+  kickedUsers.length = 0;
+  const mockWarnMsg1 = {
+    key: { remoteJid: mockGroup, participant: adminSender, fromMe: false },
+    pushName: 'Admin Ali',
+    message: {
+      extendedTextMessage: {
+        text: `.warn @923112233445 Bad behavior in chat`,
+        contextInfo: {
+          mentionedJid: [warnTarget]
+        }
+      }
+    }
+  };
+
+  await warnCmd.execute({
+    sock: mockSock,
+    msg: mockWarnMsg1,
+    from: mockGroup,
+    isGroup: true,
+    sender: adminSender,
+    groupMetadata: mockGroupMetadata,
+    botJid,
+    args: ['@923112233445', 'Bad', 'behavior', 'in', 'chat'],
+    commandName: 'warn'
+  });
+
+  assert.strictEqual(sentMessages.length, 1, 'Warning message 1 must be sent');
+  const warnText1 = sentMessages[0].content.text;
+  assert(warnText1.includes('Admin Ali'), 'Warning message must attribute the warning to the admin name');
+  assert(warnText1.includes('923112233445'), 'Warning message must mention target user');
+  assert(warnText1.includes('Bad behavior in chat'), 'Warning message must show the reason');
+  assert(warnText1.includes('1 / 3'), 'Warning count must show 1 / 3');
+  assert(sentMessages[0].content.mentions.includes(warnTarget), 'Target must be in mentions');
+
+  // 5. Issue 2nd warning
+  sentMessages.length = 0;
+  await warnCmd.execute({
+    sock: mockSock,
+    msg: mockWarnMsg1,
+    from: mockGroup,
+    isGroup: true,
+    sender: adminSender,
+    groupMetadata: mockGroupMetadata,
+    botJid,
+    args: ['@923112233445', 'Second warning'],
+    commandName: 'warn'
+  });
+  assert(sentMessages[0].content.text.includes('2 / 3'), 'Warning count must show 2 / 3');
+  assert.strictEqual(kickedUsers.length, 0, 'User should not be kicked at 2nd warning');
+
+  // 6. Issue 3rd warning -> AUTO-KICK triggered!
+  sentMessages.length = 0;
+  await warnCmd.execute({
+    sock: mockSock,
+    msg: mockWarnMsg1,
+    from: mockGroup,
+    isGroup: true,
+    sender: adminSender,
+    groupMetadata: mockGroupMetadata,
+    botJid,
+    args: ['@923112233445', 'Final strike'],
+    commandName: 'warn'
+  });
+  assert(kickedUsers.includes(warnTarget), 'User must be kicked on 3rd warning');
+  assert(sentMessages[0].content.text.includes('FINAL WARNING & AUTO-KICK'), 'Must show final warning and kick banner');
+  assert(sentMessages[0].content.text.includes('Admin Ali'), 'Must show admin attribution on 3rd warning');
+
+  // 7. Test reset warnings (.warn reset or .resetwarn)
+  sentMessages.length = 0;
+  moderator.addWarning(mockGroup, warnTarget, adminSender, 'Admin Ali', 'Test warn');
+  assert.strictEqual(moderator.getWarnings(mockGroup, warnTarget).count, 1, 'Should have 1 warn');
+
+  await warnCmd.execute({
+    sock: mockSock,
+    msg: mockWarnMsg1,
+    from: mockGroup,
+    isGroup: true,
+    sender: adminSender,
+    groupMetadata: mockGroupMetadata,
+    botJid,
+    args: ['@923112233445'],
+    commandName: 'resetwarn'
+  });
+  assert(sentMessages[0].content.text.includes('WARNINGS RESET'), 'Must show warnings reset message');
+  assert.strictEqual(moderator.getWarnings(mockGroup, warnTarget).count, 0, 'Warnings must be reset to 0');
+  console.log('  ✅ Admin Warning: Warned at 1st & 2nd with admin name attribution, auto-kicked at 3rd, and reset verified.');
+
+  console.log('\n🎉 ALL 17 AUTOMATED TESTS PASSED SUCCESSFULLY! 🎉\n');
 }
 
 runTests().then(() => {
