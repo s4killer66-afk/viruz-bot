@@ -549,22 +549,28 @@ async function runTests() {
 
   const warnTarget = '923112233445@s.whatsapp.net';
   const adminSender = '923116469820@s.whatsapp.net';
+  const fellowAdminTarget = '923119999888@s.whatsapp.net';
   mockGroupMetadata.participants.push({ id: warnTarget, admin: null });
+  mockGroupMetadata.participants.push({ id: fellowAdminTarget, admin: 'admin' });
 
-  // 1. Admin protection: Admins cannot be warned
-  const adminWarnCheck = moderator.canWarnUser(adminSender, botJid, mockGroupMetadata);
-  assert.strictEqual(adminWarnCheck.allowed, false, 'Admins must be protected from warnings');
-  assert(adminWarnCheck.reason.includes('Admin Protection'), 'Should mention Admin Protection');
+  // 1. Self-warning protection: Users/Admins cannot warn themselves
+  const adminWarnSelfCheck = moderator.canWarnUser(adminSender, botJid, mockGroupMetadata, adminSender);
+  assert.strictEqual(adminWarnSelfCheck.allowed, false, 'Users must not be able to warn themselves');
+  assert(adminWarnSelfCheck.reason.includes('cannot warn yourself'), 'Should mention cannot warn yourself');
 
   // 2. Bot protection: Bot cannot warn itself
-  const botWarnCheck = moderator.canWarnUser(botJid, botJid, mockGroupMetadata);
+  const botWarnCheck = moderator.canWarnUser(botJid, botJid, mockGroupMetadata, adminSender);
   assert.strictEqual(botWarnCheck.allowed, false, 'Bot cannot warn itself');
 
-  // 3. Regular member can be warned
-  const regularWarnCheck = moderator.canWarnUser(warnTarget, botJid, mockGroupMetadata);
+  // 3. Admin-to-admin warning: Admins CAN warn each other
+  const adminWarnAdminCheck = moderator.canWarnUser(fellowAdminTarget, botJid, mockGroupMetadata, adminSender);
+  assert.strictEqual(adminWarnAdminCheck.allowed, true, 'Admins must be able to warn fellow admins');
+
+  // 4. Regular member can be warned
+  const regularWarnCheck = moderator.canWarnUser(warnTarget, botJid, mockGroupMetadata, adminSender);
   assert.strictEqual(regularWarnCheck.allowed, true, 'Regular members can be warned');
 
-  // 4. Issue 1st warning via command
+  // 5. Issue 1st warning to regular member via command
   sentMessages.length = 0;
   kickedUsers.length = 0;
   const mockWarnMsg1 = {
@@ -600,7 +606,7 @@ async function runTests() {
   assert(warnText1.includes('1 / 6'), 'Warning count must show 1 / 6');
   assert(sentMessages[0].content.mentions.includes(warnTarget), 'Target must be in mentions');
 
-  // 5. Issue 2nd through 5th warnings
+  // 6. Issue 2nd through 5th warnings to regular member
   for (let w = 2; w <= 5; w++) {
     sentMessages.length = 0;
     await warnCmd.execute({
@@ -618,7 +624,7 @@ async function runTests() {
     assert.strictEqual(kickedUsers.length, 0, `User should not be kicked at warning ${w}`);
   }
 
-  // 6. Issue 6th warning -> AUTO-KICK triggered!
+  // 7. Issue 6th warning to regular member -> AUTO-KICK triggered!
   sentMessages.length = 0;
   await warnCmd.execute({
     sock: mockSock,
@@ -631,12 +637,52 @@ async function runTests() {
     args: ['@923112233445', 'Final 6th strike'],
     commandName: 'warn'
   });
-  assert(kickedUsers.includes(warnTarget), 'User must be kicked on 6th warning');
+  assert(kickedUsers.includes(warnTarget), 'Regular member must be kicked on 6th warning');
   assert(sentMessages[0].content.text.includes('FINAL WARNING & AUTO-KICK'), 'Must show final warning and kick banner');
   assert(sentMessages[0].content.text.includes('6 / 6'), 'Must show 6 / 6 limit exceeded');
   assert(sentMessages[0].content.text.includes('Admin Ali'), 'Must show admin attribution on 6th warning');
 
-  // 7. Test reset warnings (.warn reset or .resetwarn)
+  // 8. Test Admin Warning Admin: 6 warnings issued to fellow admin -> NEVER KICKED!
+  kickedUsers.length = 0;
+  const mockWarnAdminMsg = {
+    key: { remoteJid: mockGroup, participant: adminSender, fromMe: false },
+    pushName: 'Admin Ali',
+    message: {
+      extendedTextMessage: {
+        text: `.warn @923119999888 Misuse of admin permissions`,
+        contextInfo: {
+          mentionedJid: [fellowAdminTarget]
+        }
+      }
+    }
+  };
+
+  for (let w = 1; w <= 6; w++) {
+    sentMessages.length = 0;
+    await warnCmd.execute({
+      sock: mockSock,
+      msg: mockWarnAdminMsg,
+      from: mockGroup,
+      isGroup: true,
+      sender: adminSender,
+      groupMetadata: mockGroupMetadata,
+      botJid,
+      args: ['@923119999888', 'Misuse of admin permissions'],
+      commandName: 'warn'
+    });
+  }
+
+  assert(!kickedUsers.includes(fellowAdminTarget), 'Admin must NEVER be kicked even when warning limit is reached');
+  assert(sentMessages[0].content.text.includes('ADMIN WARNING LIMIT (IMMUNITY)'), 'Must show admin immunity banner');
+  assert(sentMessages[0].content.text.includes('Admin Protection Active'), 'Must mention Admin Protection Active');
+  assert(sentMessages[0].content.text.includes('NEVER be kicked'), 'Must explicitly mention admin can never be kicked');
+
+  // 9. Admins cannot kick each other via .kick command
+  const adminKickCheck = moderator.canKickUser(fellowAdminTarget, botJid, mockGroupMetadata);
+  assert.strictEqual(adminKickCheck.allowed, false, 'Admins must not be kickable by each other');
+  assert(adminKickCheck.reason.includes('No one can kick an Admin'), 'Must state no one can kick an Admin');
+
+  // 10. Test reset warnings (.warn reset or .resetwarn)
   sentMessages.length = 0;
   moderator.addWarning(mockGroup, warnTarget, adminSender, 'Admin Ali', 'Test warn');
   assert.strictEqual(moderator.getWarnings(mockGroup, warnTarget).count, 1, 'Should have 1 warn');
@@ -655,7 +701,7 @@ async function runTests() {
   assert(sentMessages[0].content.text.includes('WARNINGS RESET'), 'Must show warnings reset message');
   assert(sentMessages[0].content.text.includes('0 / 6'), 'Must show reset to 0 / 6');
   assert.strictEqual(moderator.getWarnings(mockGroup, warnTarget).count, 0, 'Warnings must be reset to 0');
-  console.log('  ✅ Admin Warning: Warned up to 5th with admin name attribution, auto-kicked at 6th, and reset verified.');
+  console.log('  ✅ Admin Warning: Admins can warn each other with zero auto-kick immunity; normal members auto-kicked at 6th.');
 
   // Test 18: Verifying Anime Voice TTS (.tts & .tt) + Admin .tts on/off Controls
   console.log('\n▶ Test 18: Verifying Anime Voice TTS (.tts & .tt) + Admin .tts on/off Controls...');

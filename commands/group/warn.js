@@ -71,8 +71,8 @@ module.exports = {
       }, { quoted: msg });
     }
 
-    // ── Check if target can be warned (Admins are protected) ──
-    const check = moderator.canWarnUser(targetJid, botJid, groupMetadata);
+    // ── Check if target can be warned (Admins can warn each other, bot/self protected) ──
+    const check = moderator.canWarnUser(targetJid, botJid, groupMetadata, sender);
     if (!check.allowed) {
       return sock.sendMessage(from, { text: check.reason }, { quoted: msg });
     }
@@ -89,11 +89,32 @@ module.exports = {
       reason = 'Rule violation / Inappropriate behavior';
     }
 
+    // Check if target is an Admin (Admins are NEVER kicked by warnings)
+    const isTargetAdmin = moderator.isGroupAdmin(targetJid, groupMetadata);
+
     // Add warning
     const result = moderator.addWarning(from, targetJid, sender, adminName, reason);
 
-    // ── Max Warning (6th): AUTO KICK ──
-    if (result.isMax) {
+    // ── Max Warning (6th or higher) ──
+    if (result.isMax || result.count >= result.max) {
+      // RULE: Admins can warn each other, but CAN NEVER be kicked automatically or by warnings!
+      if (isTargetAdmin) {
+        const adminImmunityBody = `
+👤 *Warned Admin:* @${targetPhone} 🛡️
+👮‍♂️ *Issued By (Admin):* ${adminDisplay}
+📝 *Reason:* ${reason}
+🛑 *Warning Level:* [ ${result.count} / ${result.max} ] — LIMIT REACHED
+🛡️ *Action Taken:* Admin Protection Active! Admins can give warnings to each other, but can NEVER be kicked automatically or removed by warnings.
+`.trim();
+
+        const output = atlasBox('⚠️ ADMIN WARNING LIMIT (IMMUNITY)', adminImmunityBody, 'VIRUZ • GROUP MODERATION');
+        return sock.sendMessage(from, {
+          text: output,
+          mentions: [targetJid, sender]
+        }, { quoted: msg });
+      }
+
+      // NORMAL MEMBERS: Auto-kick once warning limit is reached
       let kickSuccess = false;
       try {
         welcomeHandler.recordKick(from, targetJid, sender);
@@ -123,14 +144,24 @@ module.exports = {
       }, { quoted: msg });
     }
 
-    // ── 1st or 2nd Warning ──
-    const remaining = result.max - result.count;
+    // ── Warnings below limit (1st to 5th) ──
+    const remaining = Math.max(0, result.max - result.count);
+    let noticeText = '';
+    let targetLabel = `@${targetPhone}`;
+
+    if (isTargetAdmin) {
+      targetLabel = `@${targetPhone} 🛡️ (Admin)`;
+      noticeText = `Admin warning issued. You have ${remaining} warning${remaining !== 1 ? 's' : ''} until limit is reached. Note: Admins can warn each other, but will never be kicked automatically.`;
+    } else {
+      noticeText = `You have ${remaining} warning${remaining > 1 ? 's' : ''} remaining. Reaching ${result.max} warnings will result in an immediate KICK from the group!`;
+    }
+
     const warnBody = `
-👤 *Warned User:* @${targetPhone}
+👤 *Warned User:* ${targetLabel}
 👮‍♂️ *Issued By (Admin):* ${adminDisplay}
 📝 *Reason:* ${reason}
 🛑 *Warning Level:* [ ${result.count} / ${result.max} ]
-⚠️ *Notice:* You have ${remaining} warning${remaining > 1 ? 's' : ''} remaining. Reaching ${result.max} warnings will result in an immediate KICK from the group!
+⚠️ *Notice:* ${noticeText}
 `.trim();
 
     const output = atlasBox(`⚠️ ADMIN WARNING (${result.count}/${result.max})`, warnBody, 'VIRUZ • GROUP MODERATION');
