@@ -123,16 +123,81 @@ app.post('/api/test-game', async (req, res) => {
   }
 });
 
+// Setup console pairing input for Pterodactyl / KataBump terminals
+const readline = require('readline');
+
+function setupConsolePairing(waClient) {
+  if (process.env.NODE_ENV === 'test') return;
+
+  const targetNumber = process.env.PAIR_NUMBER || process.env.PHONE_NUMBER;
+  if (targetNumber) {
+    const clean = targetNumber.replace(/[^0-9]/g, '');
+    console.log(`[Auto-Pair] Requesting pairing code for +${clean}...`);
+    setTimeout(() => {
+      waClient.requestNewPairingCode(clean).catch(err => {
+        console.error('[Auto-Pair Error]:', err.message);
+      });
+    }, 2500);
+    return;
+  }
+
+  try {
+    const rl = readline.createInterface({
+      input: process.stdin,
+      output: process.stdout,
+      terminal: false
+    });
+
+    console.log(`👉 Or type your WhatsApp phone number below (e.g. 923116469820) and press Enter to pair:`);
+    rl.on('line', async (line) => {
+      const clean = line.trim().replace(/[^0-9]/g, '');
+      if (clean.length >= 9) {
+        console.log(`[Console] Generating pairing code for +${clean}...`);
+        try {
+          await waClient.requestNewPairingCode(clean);
+        } catch (err) {
+          console.error(`[Console Error]: ${err.message}. Please retry.`);
+        }
+      } else if (line.trim()) {
+        console.log('❌ Invalid phone number length. Include country code (e.g. 923116469820).');
+      }
+    });
+
+    rl.on('error', () => {});
+    if (typeof process.stdin.unref === 'function') {
+      process.stdin.unref();
+    }
+  } catch (e) {}
+}
+
 // Start Express Server
-const server = app.listen(config.port, () => {
+const server = app.listen(config.port, async () => {
+  let publicIp = null;
+  try {
+    const ipRes = await axios.get('https://api.ipify.org', { timeout: 3500 });
+    if (ipRes.data) {
+      publicIp = ipRes.data.trim();
+    }
+  } catch (e) {}
+
+  const webUrl = publicIp ? `http://${publicIp}:${config.port}` : `http://localhost:${config.port}`;
   console.log(`\n======================================================`);
   console.log(`🚀 VIRUZ BOT & WEB PAIRING DASHBOARD`);
-  console.log(`🌐 Dashboard URL: http://localhost:${config.port}`);
+  console.log(`🌐 Public Webpage: ${webUrl}`);
+  if (publicIp) {
+    console.log(`🌐 Localhost:     http://localhost:${config.port}`);
+  }
+  console.log(`👉 Open the Public Webpage in your browser or phone to link!`);
   console.log(`======================================================\n`);
   
   // Start Baileys in background
-  waClient.start().catch(err => {
+  waClient.start().then(() => {
+    if (!waClient.sock?.authState?.creds?.registered) {
+      setupConsolePairing(waClient);
+    }
+  }).catch(err => {
     console.log('[Baileys Startup Note] Waiting for pairing code request from web portal.');
+    setupConsolePairing(waClient);
   });
 
   if (process.env.APP_URL) {
