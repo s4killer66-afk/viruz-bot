@@ -6,3 +6,5 @@ yarn-error.log*
 .env
 group_settings.json
 tts_state.json
+*.zip
+
