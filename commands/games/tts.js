@@ -20,7 +20,7 @@ module.exports = {
   name: 'tts',
   aliases: ALL_ALIASES,
   category: 'games',
-  description: 'Convert text to voice notes (Sara authentic Pakistani Urdu human girl voice & 20+ Anime voices like Goku, Gojo, Sukuna)',
+  description: 'Convert text to voice notes (Sara authentic Pakistani Urdu & English human girl voice & 20+ Anime voices like Goku, Gojo, Sukuna)',
   usage: '.sara <message> | .goku <message> | .tts sara <message> | .tts goku <message> | .tts on | .tts off | .tts list',
   async execute({ sock, msg, from, sender, isGroup, groupMetadata, args, commandName }) {
     const activeCmd = (commandName || 'tts').toLowerCase();
@@ -92,8 +92,8 @@ module.exports = {
     if (!args[0]) {
       return sock.sendMessage(from, {
         text: '🎙️ *VIRUZ Voice TTS (Text-to-Speech)*\n\n' +
-              '*Pakistani Urdu Human Girl Voice:*\n' +
-              '• `.sara <message>` - Sara (Authentic Pakistani Urdu Girl 🧕)\n' +
+              '*Pakistani Urdu & English Human Girl Voice:*\n' +
+              '• `.sara <message>` - Sara (Authentic Pakistani Urdu & English Girl 🧕)\n' +
               '  _Aliases:_ `.tts sara`, `.tts urdu`, `.urdu <message>`\n\n' +
               '*Anime Voices (Voicevox):*\n' +
               '• `.goku <message>` - Son Goku (Super Saiyan 💥)\n' +
@@ -106,6 +106,7 @@ module.exports = {
               '*Examples:*\n' +
               '• `.sara Aap kaise ho sab?`\n' +
               '• `.sara السلام علیکم! آپ سب کیسے ہیں؟`\n' +
+              '• `.sara Welcome everyone, hope you are having a great time!`\n' +
               '• `.tts sara Shukriya sabka group mein aane ka`\n' +
               '• `.tts goku Kamehameha!`\n' +
               '• `.tts gojo Throughout heaven and earth, I alone am the honored one.`\n' +

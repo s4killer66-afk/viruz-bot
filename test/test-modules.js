@@ -869,7 +869,7 @@ async function runTests() {
     sender: regularSender,
     isGroup: true,
     groupMetadata: mockGroupMetadata,
-    args: ['Welcome', 'to', 'our', 'WhatsApp', 'group', 'brother!'],
+    args: ['Welcome', 'to', 'our', 'group', 'brother!'],
     commandName: 'sara'
   });
   assert(sentMessages.some(m => m.content.audio), 'Sara English audio must be sent');
