@@ -65,23 +65,6 @@ module.exports = {
       }
     }
 
-    // ── Check if the bot has admin rights ──
-    const isBotAdmin = groupMetadata ? moderator.isBotAdmin(sock, groupMetadata) : false;
-
-    if (!isBotAdmin) {
-      try {
-        const inviteCode = await sock.groupInviteCode(from);
-        return sock.sendMessage(from, {
-          text: `⚠️ *Bot is not an Admin!*\nThe bot needs admin rights to add members directly.\n\nShare this invitation link with @${cleanNum}:\nhttps://chat.whatsapp.com/${inviteCode}`,
-          mentions: [targetJid]
-        }, { quoted: msg });
-      } catch (e) {
-        return sock.sendMessage(from, {
-          text: '⚠️ *Bot is not an Admin!*\nPlease promote the bot to Group Admin so it can add members to the group.'
-        }, { quoted: msg });
-      }
-    }
-
     // ── Attempt to add user directly via WhatsApp API ──
     try {
       const response = await sock.groupParticipantsUpdate(from, [targetJid], 'add');

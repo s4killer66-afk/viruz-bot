@@ -12,14 +12,28 @@ module.exports = {
       return sock.sendMessage(from, { text: '❌ This command can only be used in group chats!' }, { quoted: msg });
     }
 
-    // Fallback: If groupMetadata was not cached, attempt direct fetch
-    if (!groupMetadata && typeof sock.groupMetadata === 'function') {
+    // Ensure we have valid groupMetadata with participants
+    if ((!groupMetadata || !Array.isArray(groupMetadata.participants) || groupMetadata.participants.length === 0) && typeof sock.groupMetadata === 'function') {
       try {
         groupMetadata = await sock.groupMetadata(from);
       } catch (e) {}
     }
 
-    if (!moderator.isGroupAdmin(sender, groupMetadata, msg)) {
+    // Verify sender is admin (with automatic fresh fetch retry in case of recent promotions)
+    let isAdmin = moderator.isGroupAdmin(sender, groupMetadata, msg);
+    if (!isAdmin && typeof sock.groupMetadata === 'function') {
+      try {
+        const freshMeta = await sock.groupMetadata(from);
+        if (freshMeta && Array.isArray(freshMeta.participants) && freshMeta.participants.length > 0) {
+          groupMetadata = freshMeta;
+          const groupMetadataCache = require('../../lib/groupMetadataCache');
+          groupMetadataCache.set(from, freshMeta);
+          isAdmin = moderator.isGroupAdmin(sender, groupMetadata, msg);
+        }
+      } catch (e) {}
+    }
+
+    if (!isAdmin) {
       return sock.sendMessage(from, {
         text: '⛔ *Access Denied!*\nOnly Group Admins can mention everyone.'
       }, { quoted: msg });

@@ -120,13 +120,24 @@ module.exports = {
 
     // ── Admin Subcommand: .tts on / .tts off ──
     if (isAdminToggle) {
-      if (isGroup && !groupMetadata && typeof sock.groupMetadata === 'function') {
+      if (isGroup && (!groupMetadata || !Array.isArray(groupMetadata.participants) || groupMetadata.participants.length === 0) && typeof sock.groupMetadata === 'function') {
         try {
           groupMetadata = await sock.groupMetadata(from);
         } catch (e) {}
       }
       const isOwner = safety.isOwner(sender) || msg.key.fromMe;
-      const isAdmin = isGroup && moderator.isGroupAdmin(sender, groupMetadata, msg);
+      let isAdmin = isGroup && moderator.isGroupAdmin(sender, groupMetadata, msg);
+      if (!isOwner && !isAdmin && isGroup && typeof sock.groupMetadata === 'function') {
+        try {
+          const freshMeta = await sock.groupMetadata(from);
+          if (freshMeta && Array.isArray(freshMeta.participants) && freshMeta.participants.length > 0) {
+            groupMetadata = freshMeta;
+            const groupMetadataCache = require('../../lib/groupMetadataCache');
+            groupMetadataCache.set(from, freshMeta);
+            isAdmin = moderator.isGroupAdmin(sender, groupMetadata, msg);
+          }
+        } catch (e) {}
+      }
 
       if (!isOwner && !isAdmin) {
         return sock.sendMessage(from, {
