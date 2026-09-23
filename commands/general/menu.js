@@ -18,8 +18,8 @@ Prefixes: \`. \` or \`, \` | Connected
 🎮 *GAME ACCOUNT CHECKER:*
 • \`${p}ml <id> <zone>\` - Mobile Legends (Player Info, Rank, Region, Passes)
 
-🎙️ *MULTILINGUAL & ANIME VOICE TTS (FOR EVERYONE):*
-• \`${p}sara <message>\` - Sara (Urdu 🇵🇰 / Hindi 🇮🇳 / English Girl 🧕)
+🎙️ *PAKISTANI URDU & ANIME VOICE TTS (FOR EVERYONE):*
+• \`${p}sara <message>\` - Sara (Pakistani Urdu Girl 🧕)
 • \`${p}goku <message>\` - Son Goku (Super Saiyan 💥)
 • \`${p}gojo <message>\` - Satoru Gojo (The Honored One 🤞)
 • \`${p}sukuna <message>\` - Ryomen Sukuna (King of Curses 🩸)

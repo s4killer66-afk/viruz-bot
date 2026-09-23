@@ -680,11 +680,10 @@ async function runTests() {
   assert.strictEqual(resolveHero('vexana'), null, "MLBB hero 'vexana' must not be in anime TTS dictionary");
   assert.strictEqual(resolveHero('alucard'), null, "MLBB hero 'alucard' must not be in anime TTS dictionary");
 
-  // Test Sara multilingual resolution
+  // Test Sara Pakistani Urdu resolution
   const saraVoice = resolveHero('sara');
   assert(saraVoice !== null && saraVoice.id === 'sara', "'sara' must resolve to Sara");
   assert.strictEqual(resolveHero('urdu').id, 'sara', "'urdu' alias must resolve to Sara");
-  assert.strictEqual(resolveHero('hindi').id, 'sara', "'hindi' alias must resolve to Sara");
   assert.strictEqual(resolveHero('pakistani').id, 'sara', "'pakistani' alias must resolve to Sara");
   assert.strictEqual(resolveHero('sarah').id, 'sara', "'sarah' alias must resolve to Sara");
 
@@ -864,12 +863,11 @@ async function runTests() {
   // Test command handler aliases routing
   assert.strictEqual(commandHandler.getCommand('sara'), ttsCmd, "commandHandler must route 'sara' to tts command");
   assert.strictEqual(commandHandler.getCommand('urdu'), ttsCmd, "commandHandler must route 'urdu' to tts command");
-  assert.strictEqual(commandHandler.getCommand('hindi'), ttsCmd, "commandHandler must route 'hindi' to tts command");
   assert.strictEqual(commandHandler.getCommand('goku'), ttsCmd, "commandHandler must route 'goku' to tts command");
   assert.strictEqual(commandHandler.getCommand('gojo'), ttsCmd, "commandHandler must route 'gojo' to tts command");
   assert.strictEqual(commandHandler.getCommand('sukuna'), ttsCmd, "commandHandler must route 'sukuna' to tts command");
   assert.strictEqual(commandHandler.getCommand('naruto'), ttsCmd, "commandHandler must route 'naruto' to tts command");
-  console.log('  ✅ Anime & Multilingual Voice TTS: Sara (.sara, Urdu/Hindi/English) & Anime (.goku, .gojo, .sukuna) verified.');
+  console.log('  ✅ Anime & Pakistani Urdu Voice TTS: Sara (.sara, Pakistani Urdu) & Anime (.goku, .gojo, .sukuna) verified.');
 
   // Test 19: Verifying .bot Command Admin Access & .add for Everyone
   console.log('\n▶ Test 19: Verifying .bot Command Admin Access & .add for Everyone...');

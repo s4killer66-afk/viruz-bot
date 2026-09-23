@@ -20,7 +20,7 @@ module.exports = {
   name: 'tts',
   aliases: ALL_ALIASES,
   category: 'games',
-  description: 'Convert text to voice notes (Sara Urdu/Hindi/English girl voice & 20+ Anime voices like Goku, Gojo, Sukuna)',
+  description: 'Convert text to voice notes (Sara authentic Pakistani Urdu human girl voice & 20+ Anime voices like Goku, Gojo, Sukuna)',
   usage: '.sara <message> | .goku <message> | .tts sara <message> | .tts goku <message> | .tts on | .tts off | .tts list',
   async execute({ sock, msg, from, sender, isGroup, groupMetadata, args, commandName }) {
     const activeCmd = (commandName || 'tts').toLowerCase();
@@ -92,9 +92,9 @@ module.exports = {
     if (!args[0]) {
       return sock.sendMessage(from, {
         text: '🎙️ *VIRUZ Voice TTS (Text-to-Speech)*\n\n' +
-              '*Multilingual Girl Voice (Urdu / Hindi / English):*\n' +
-              '• `.sara <message>` - Sara (Urdu 🇵🇰 / Hindi 🇮🇳 / English 🧕)\n' +
-              '  _Aliases:_ `.tts sara`, `.tts urdu`, `.tts hindi`\n\n' +
+              '*Pakistani Urdu Human Girl Voice:*\n' +
+              '• `.sara <message>` - Sara (Authentic Pakistani Urdu Girl 🧕)\n' +
+              '  _Aliases:_ `.tts sara`, `.tts urdu`, `.urdu <message>`\n\n' +
               '*Anime Voices (Voicevox):*\n' +
               '• `.goku <message>` - Son Goku (Super Saiyan 💥)\n' +
               '• `.gojo <message>` - Satoru Gojo (The Honored One 🤞)\n' +
@@ -104,9 +104,9 @@ module.exports = {
               '• `.zoro <message>` - Roronoa Zoro ⚔️\n\n' +
               '*General Format:* `.tts <voice/character> <message>` or `.tt <voice> <message>`\n' +
               '*Examples:*\n' +
-              '• `.sara Aap kaise ho?`\n' +
-              '• `.tts sara Hello everyone welcome to our group!`\n' +
-              '• `.tts urdu السلام علیکم! آپ سب کیسے ہیں؟`\n' +
+              '• `.sara Aap kaise ho sab?`\n' +
+              '• `.sara السلام علیکم! آپ سب کیسے ہیں؟`\n' +
+              '• `.tts sara Shukriya sabka group mein aane ka`\n' +
               '• `.tts goku Kamehameha!`\n' +
               '• `.tts gojo Throughout heaven and earth, I alone am the honored one.`\n' +
               '• `.tts random <message>` (Speaks in a random anime voice 🎲)\n' +
