@@ -1,4 +1,5 @@
 const moderator = require('../../lib/groupModerator');
+const safety = require('../../lib/safety');
 const { atlasBox } = require('../../lib/utils');
 
 module.exports = {
@@ -38,6 +39,15 @@ module.exports = {
         text: '⛔ *Access Denied!*\nOnly Group Admins can mention everyone.'
       }, { quoted: msg });
     }
+
+    // Anti-Ban Cooldown: Limit mass mention to once every 30s per group (bypass for bot host / owner)
+    const cooldownSec = safety.getMassMentionCooldown('tagall', from);
+    if (cooldownSec > 0 && !msg.key.fromMe && !safety.isOwner(sender)) {
+      return sock.sendMessage(from, {
+        text: `⏳ *Anti-Ban Cooldown:*\nPlease wait ${cooldownSec}s before using .tagall again to protect the bot from WhatsApp restrictions.`
+      }, { quoted: msg });
+    }
+    safety.recordMassMention('tagall', from);
 
     const subject = groupMetadata?.subject || 'Group';
     const participants = groupMetadata?.participants || [];

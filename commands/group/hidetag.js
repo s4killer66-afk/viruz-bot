@@ -1,4 +1,5 @@
 const moderator = require('../../lib/groupModerator');
+const safety = require('../../lib/safety');
 
 module.exports = {
   name: 'hidetag',
@@ -37,6 +38,15 @@ module.exports = {
         text: '⛔ *Access Denied!*\nOnly Group Admins can use hidetag.'
       }, { quoted: msg });
     }
+
+    // Anti-Ban Cooldown: Limit mass mention to once every 30s per group (bypass for bot host / owner)
+    const cooldownSec = safety.getMassMentionCooldown('hidetag', from);
+    if (cooldownSec > 0 && !msg.key.fromMe && !safety.isOwner(sender)) {
+      return sock.sendMessage(from, {
+        text: `⏳ *Anti-Ban Cooldown:*\nPlease wait ${cooldownSec}s before using .hidetag again to protect the bot from WhatsApp restrictions.`
+      }, { quoted: msg });
+    }
+    safety.recordMassMention('hidetag', from);
 
     const participants = groupMetadata?.participants || [];
     const mentions = participants.map(p => p.id).filter(Boolean);

@@ -1209,7 +1209,57 @@ async function runTests() {
   assert(sentMessages.some(m => m.content.text?.includes('Group Muted')), 'Full CommandHandler pipeline must recognize fromMe: true as admin and mute group');
   console.log('  ✅ Group Admin Commands: .mute, .unmute, .warn, .kick, .tagall, .hidetag, .groupinfo & fromMe host immunity fully verified.');
 
-  console.log('\n🎉 ALL 21 AUTOMATED TESTS PASSED SUCCESSFULLY! 🎉\n');
+  // Test 22: Verifying WhatsApp Anti-Ban Safety Suite
+  console.log('\n▶ Test 22: Verifying WhatsApp Anti-Ban Safety Suite...');
+  const antiBanGroup = 'antiban-test-group@g.us';
+  const antiBanMeta = {
+    id: antiBanGroup,
+    subject: 'Anti-Ban Test Group',
+    participants: [
+      { id: adminUser, admin: 'admin' },
+      { id: botJid, admin: 'admin' }
+    ]
+  };
+
+  // 1. Mass mention cooldown: non-owner admin using .tagall back-to-back
+  sentMessages.length = 0;
+  await tagallCmd.execute({
+    sock: mockSock,
+    msg: { key: { id: 'tagall_admin_1', fromMe: false } },
+    from: antiBanGroup,
+    isGroup: true,
+    sender: adminUser,
+    groupMetadata: antiBanMeta,
+    args: ['First', 'alert']
+  });
+  assert(sentMessages[0].content.text.includes('TAG ALL'), 'First tagall by admin must succeed');
+
+  sentMessages.length = 0;
+  await tagallCmd.execute({
+    sock: mockSock,
+    msg: { key: { id: 'tagall_admin_2', fromMe: false } },
+    from: antiBanGroup,
+    isGroup: true,
+    sender: adminUser,
+    groupMetadata: antiBanMeta,
+    args: ['Second', 'alert']
+  });
+  assert(sentMessages[0].content.text.includes('Anti-Ban Cooldown'), 'Second tagall must trigger 30s Anti-Ban cooldown');
+
+  // 2. DM Flood Protection: non-owner spamming commands in private chat
+  const unknownDmSender = '923999111222@s.whatsapp.net';
+  for (let i = 0; i < 5; i++) {
+    safety.recordDmCommand(unknownDmSender);
+  }
+  assert.strictEqual(safety.canExecuteDmCommand(unknownDmSender), false, 'Non-owner must be throttled after 5 commands in 1 minute in DM');
+
+  // 3. Kick pacing: consecutive kicks throttled
+  safety.recordKick(mockGroup);
+  assert.strictEqual(safety.canKick(mockGroup), false, 'Immediate consecutive kick must be paced for anti-ban');
+
+  console.log('  ✅ Anti-Ban Suite: Mass-mention cooldowns, DM flood defense, and kick pacing fully verified.');
+
+  console.log('\n🎉 ALL 22 AUTOMATED TESTS PASSED SUCCESSFULLY! 🎉\n');
 }
 
 runTests().then(() => {

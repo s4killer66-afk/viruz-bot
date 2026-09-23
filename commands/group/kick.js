@@ -1,5 +1,6 @@
 const moderator = require('../../lib/groupModerator');
 const welcomeHandler = require('../../lib/welcomeHandler');
+const safety = require('../../lib/safety');
 
 module.exports = {
   name: 'kick',
@@ -54,6 +55,14 @@ module.exports = {
     if (!check.allowed) {
       return sock.sendMessage(from, { text: check.reason }, { quoted: msg });
     }
+
+    // Anti-Ban Pacing: Limit consecutive kicks
+    if (!safety.canKick(from) && !msg.key.fromMe) {
+      return sock.sendMessage(from, {
+        text: '⏳ *Anti-Ban Pacing:*\nPlease wait a moment before kicking another member to protect the bot account.'
+      }, { quoted: msg });
+    }
+    safety.recordKick(from);
 
     try {
       welcomeHandler.recordKick(from, targetJid, sender);
