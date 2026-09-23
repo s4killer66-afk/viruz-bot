@@ -668,7 +668,7 @@ async function runTests() {
   const { resolveHero, getHeroCatalog, generateHeroTTS, getRandomAnimeVoice } = require('../lib/heroVoices');
   const ttsState = require('../lib/ttsState');
 
-  // Test character resolution (including 'go' for Goku)
+  // Test character resolution (including 'go' for Goku and 'sara' for Sara)
   const gokuByGo = resolveHero('go');
   assert(gokuByGo !== null && gokuByGo.id === 'goku', "'go' alias must resolve to Son Goku");
   assert(resolveHero('goku') !== null && resolveHero('goku').id === 'goku', "'goku' must resolve to Son Goku");
@@ -680,12 +680,20 @@ async function runTests() {
   assert.strictEqual(resolveHero('vexana'), null, "MLBB hero 'vexana' must not be in anime TTS dictionary");
   assert.strictEqual(resolveHero('alucard'), null, "MLBB hero 'alucard' must not be in anime TTS dictionary");
 
+  // Test Sara multilingual resolution
+  const saraVoice = resolveHero('sara');
+  assert(saraVoice !== null && saraVoice.id === 'sara', "'sara' must resolve to Sara");
+  assert.strictEqual(resolveHero('urdu').id, 'sara', "'urdu' alias must resolve to Sara");
+  assert.strictEqual(resolveHero('hindi').id, 'sara', "'hindi' alias must resolve to Sara");
+  assert.strictEqual(resolveHero('pakistani').id, 'sara', "'pakistani' alias must resolve to Sara");
+  assert.strictEqual(resolveHero('sarah').id, 'sara', "'sarah' alias must resolve to Sara");
+
   const randVoice = getRandomAnimeVoice();
   assert(randVoice && randVoice.name && randVoice.emoji, 'getRandomAnimeVoice must return valid anime voice');
 
   // Test catalog
   const catalog = getHeroCatalog();
-  assert(catalog.includes('Son Goku') && catalog.includes('Satoru Gojo'), 'Catalog must list Goku and Gojo');
+  assert(catalog.includes('Sara') && catalog.includes('Son Goku') && catalog.includes('Satoru Gojo'), 'Catalog must list Sara, Goku and Gojo');
 
   // Test catalog command execution: .tts list
   sentMessages.length = 0;
@@ -699,7 +707,7 @@ async function runTests() {
     args: ['list']
   });
   assert.strictEqual(sentMessages.length, 1, 'Catalog message must be sent');
-  assert(sentMessages[0].content.text.includes('ANIME VOICE CATALOG'), 'Catalog header must be sent');
+  assert(sentMessages[0].content.text.includes('VOICE CATALOG'), 'Catalog header must be sent');
 
   // Test .tts off by regular member -> Access Denied
   sentMessages.length = 0;
@@ -821,12 +829,47 @@ async function runTests() {
   const directGojoAudio = sentMessages.find(m => m.content.audio);
   assert(directGojoAudio.content.fileName.includes('Gojo'), 'Direct .gojo audio filename must be Gojo');
 
+  // Test direct multilingual girl command: .sara Aap sab kaise ho?
+  sentMessages.length = 0;
+  await ttsCmd.execute({
+    sock: mockSock,
+    msg: { key: { id: 'test_direct_sara' } },
+    from: mockGroup,
+    sender: regularSender,
+    isGroup: true,
+    groupMetadata: mockGroupMetadata,
+    args: ['Aap', 'sab', 'kaise', 'ho?'],
+    commandName: 'sara'
+  });
+  assert(sentMessages.some(m => m.content.audio), 'Direct .sara command must send audio');
+  const directSaraAudio = sentMessages.find(m => m.content.audio);
+  assert(directSaraAudio.content.fileName.includes('Sara'), 'Direct .sara audio filename must be Sara');
+  assert(directSaraAudio.content.audio.length > 500, 'Sara audio Buffer must contain voice data');
+
+  // Test .tts urdu with Urdu script
+  sentMessages.length = 0;
+  await ttsCmd.execute({
+    sock: mockSock,
+    msg: { key: { id: 'test_sara_urdu' } },
+    from: mockGroup,
+    sender: regularSender,
+    isGroup: true,
+    groupMetadata: mockGroupMetadata,
+    args: ['urdu', 'السلام', 'علیکم']
+  });
+  assert(sentMessages.some(m => m.content.audio), '.tts urdu command must send audio');
+  const saraUrduAudio = sentMessages.find(m => m.content.audio);
+  assert(saraUrduAudio.content.fileName.includes('Sara'), 'Sara Urdu audio filename must be Sara');
+
   // Test command handler aliases routing
+  assert.strictEqual(commandHandler.getCommand('sara'), ttsCmd, "commandHandler must route 'sara' to tts command");
+  assert.strictEqual(commandHandler.getCommand('urdu'), ttsCmd, "commandHandler must route 'urdu' to tts command");
+  assert.strictEqual(commandHandler.getCommand('hindi'), ttsCmd, "commandHandler must route 'hindi' to tts command");
   assert.strictEqual(commandHandler.getCommand('goku'), ttsCmd, "commandHandler must route 'goku' to tts command");
   assert.strictEqual(commandHandler.getCommand('gojo'), ttsCmd, "commandHandler must route 'gojo' to tts command");
   assert.strictEqual(commandHandler.getCommand('sukuna'), ttsCmd, "commandHandler must route 'sukuna' to tts command");
   assert.strictEqual(commandHandler.getCommand('naruto'), ttsCmd, "commandHandler must route 'naruto' to tts command");
-  console.log('  ✅ Anime Voice TTS: Direct commands (.goku, .gojo, .sukuna) & aliases verified without Google woman fallback.');
+  console.log('  ✅ Anime & Multilingual Voice TTS: Sara (.sara, Urdu/Hindi/English) & Anime (.goku, .gojo, .sukuna) verified.');
 
   // Test 19: Verifying .bot Command Admin Access & .add for Everyone
   console.log('\n▶ Test 19: Verifying .bot Command Admin Access & .add for Everyone...');

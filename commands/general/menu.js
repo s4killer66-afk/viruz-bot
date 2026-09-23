@@ -18,15 +18,16 @@ Prefixes: \`. \` or \`, \` | Connected
 🎮 *GAME ACCOUNT CHECKER:*
 • \`${p}ml <id> <zone>\` - Mobile Legends (Player Info, Rank, Region, Passes)
 
-🎙️ *ANIME VOICE TTS (FOR EVERYONE):*
+🎙️ *MULTILINGUAL & ANIME VOICE TTS (FOR EVERYONE):*
+• \`${p}sara <message>\` - Sara (Urdu 🇵🇰 / Hindi 🇮🇳 / English Girl 🧕)
 • \`${p}goku <message>\` - Son Goku (Super Saiyan 💥)
 • \`${p}gojo <message>\` - Satoru Gojo (The Honored One 🤞)
 • \`${p}sukuna <message>\` - Ryomen Sukuna (King of Curses 🩸)
 • \`${p}naruto <message>\` - Naruto Uzumaki (Seventh Hokage 🍥)
 • \`${p}luffy <message>\` - Monkey D. Luffy (Straw Hat 👒)
-• \`${p}tts <character> <message>\` - Speak as any Anime character
+• \`${p}tts <character> <message>\` - Speak in any voice style
 • \`${p}tts random <message>\` - Speaks in a random anime voice 🎲
-• \`${p}tts list\` - View all 20+ Anime characters & commands
+• \`${p}tts list\` - View all voice styles & commands
 • \`${p}tts [on/off]\` - Toggle TTS in group (Admins only)
 
 👥 *GROUP PARTICIPATION:*

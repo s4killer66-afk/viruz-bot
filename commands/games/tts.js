@@ -20,8 +20,8 @@ module.exports = {
   name: 'tts',
   aliases: ALL_ALIASES,
   category: 'games',
-  description: 'Convert text to iconic Anime voice notes (Goku, Gojo, Sukuna, Naruto, etc.)',
-  usage: '.tts <character> <message> | .goku <message> | .gojo <message> | .sukuna <message> | .tts on | .tts off | .tts list',
+  description: 'Convert text to voice notes (Sara Urdu/Hindi/English girl voice & 20+ Anime voices like Goku, Gojo, Sukuna)',
+  usage: '.sara <message> | .goku <message> | .tts sara <message> | .tts goku <message> | .tts on | .tts off | .tts list',
   async execute({ sock, msg, from, sender, isGroup, groupMetadata, args, commandName }) {
     const activeCmd = (commandName || 'tts').toLowerCase();
     const isDirectCharacterCmd = activeCmd !== 'tts' && activeCmd !== 'tt' && activeCmd !== 'animetts' && activeCmd !== 'voicenote' && activeCmd !== 'vn';
@@ -91,20 +91,26 @@ module.exports = {
     // ── Standard .tts Command ──
     if (!args[0]) {
       return sock.sendMessage(from, {
-        text: '🎙️ *Anime Voice TTS (Text-to-Speech)*\n\n' +
-              '*Direct Commands:* (Fastest & direct!)\n' +
-              '• `.goku <message>` - Son Goku 💥\n' +
-              '• `.gojo <message>` - Satoru Gojo 🤞\n' +
-              '• `.sukuna <message>` - Ryomen Sukuna 🩸\n' +
+        text: '🎙️ *VIRUZ Voice TTS (Text-to-Speech)*\n\n' +
+              '*Multilingual Girl Voice (Urdu / Hindi / English):*\n' +
+              '• `.sara <message>` - Sara (Urdu 🇵🇰 / Hindi 🇮🇳 / English 🧕)\n' +
+              '  _Aliases:_ `.tts sara`, `.tts urdu`, `.tts hindi`\n\n' +
+              '*Anime Voices (Voicevox):*\n' +
+              '• `.goku <message>` - Son Goku (Super Saiyan 💥)\n' +
+              '• `.gojo <message>` - Satoru Gojo (The Honored One 🤞)\n' +
+              '• `.sukuna <message>` - Ryomen Sukuna (King of Curses 🩸)\n' +
               '• `.naruto <message>` - Naruto Uzumaki 🍥\n' +
               '• `.luffy <message>` - Monkey D. Luffy 👒\n' +
               '• `.zoro <message>` - Roronoa Zoro ⚔️\n\n' +
-              '*General Format:* `.tts <character> <message>` or `.tt <character> <message>`\n' +
+              '*General Format:* `.tts <voice/character> <message>` or `.tt <voice> <message>`\n' +
               '*Examples:*\n' +
+              '• `.sara Aap kaise ho?`\n' +
+              '• `.tts sara Hello everyone welcome to our group!`\n' +
+              '• `.tts urdu السلام علیکم! آپ سب کیسے ہیں؟`\n' +
               '• `.tts goku Kamehameha!`\n' +
               '• `.tts gojo Throughout heaven and earth, I alone am the honored one.`\n' +
               '• `.tts random <message>` (Speaks in a random anime voice 🎲)\n' +
-              '• `.tts list` (View all 20+ anime voices)\n\n' +
+              '• `.tts list` (View all voice styles & commands)\n\n' +
               '_Admin Controls:_\n' +
               '• `.tts on` - Enable TTS in this group\n' +
               '• `.tts off` - Disable TTS in this group'
