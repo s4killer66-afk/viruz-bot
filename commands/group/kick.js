@@ -12,28 +12,30 @@ module.exports = {
       return sock.sendMessage(from, { text: '❌ This command can only be used in group chats!' }, { quoted: msg });
     }
 
+    // Fallback: If groupMetadata was not cached, attempt direct fetch
+    if (!groupMetadata && typeof sock.groupMetadata === 'function') {
+      try {
+        groupMetadata = await sock.groupMetadata(from);
+      } catch (e) {}
+    }
+
     // REQUIREMENT: Admin exclusive command
-    if (!moderator.isGroupAdmin(sender, groupMetadata)) {
+    if (!moderator.isGroupAdmin(sender, groupMetadata, msg)) {
       return sock.sendMessage(from, {
         text: '⛔ *Access Denied!*\nThe `.kick` command is exclusively reserved for Group Admins.'
       }, { quoted: msg });
     }
 
-    // Determine target user
-    let targetJid = null;
-    const quoted = msg.message?.extendedTextMessage?.contextInfo?.participant;
-    const mentioned = msg.message?.extendedTextMessage?.contextInfo?.mentionedJid?.[0];
-
-    if (quoted) {
-      targetJid = quoted;
-    } else if (mentioned) {
-      targetJid = mentioned;
-    } else if (args[0]) {
-      const cleanNum = args[0].replace(/[^0-9]/g, '');
-      if (cleanNum.length >= 7) {
-        targetJid = `${cleanNum}@s.whatsapp.net`;
-      }
+    // Verify bot has admin permissions in the group
+    if (groupMetadata && !moderator.isBotAdmin(sock, groupMetadata)) {
+      return sock.sendMessage(from, {
+        text: '⚠️ *Bot is not an Admin!*\nPlease promote the bot to Group Admin so it can remove members.'
+      }, { quoted: msg });
     }
+
+    // Determine target user using universal resolution (quoted message, mention, or typed number)
+    const resolved = moderator.resolveTarget(msg, args, groupMetadata);
+    const targetJid = resolved.targetJid;
 
     if (!targetJid) {
       return sock.sendMessage(from, {
@@ -57,9 +59,16 @@ module.exports = {
         }, { quoted: msg });
       }
     } catch (err) {
-      await sock.sendMessage(from, {
-        text: `❌ *Failed to kick:* ${err.message}\n(Make sure the bot has Admin rights in this group!)`
-      }, { quoted: msg });
+      const errMsg = (err.message || '').toLowerCase();
+      if (errMsg.includes('not-authorized') || errMsg.includes('forbidden') || errMsg.includes('401') || errMsg.includes('403')) {
+        await sock.sendMessage(from, {
+          text: '⚠️ *Failed to kick:* Bot is not an Admin in this group! Please promote the bot to Admin.'
+        }, { quoted: msg });
+      } else {
+        await sock.sendMessage(from, {
+          text: `❌ *Failed to kick:* ${err.message}\n(Make sure the bot has Admin rights in this group!)`
+        }, { quoted: msg });
+      }
     }
   }
 };

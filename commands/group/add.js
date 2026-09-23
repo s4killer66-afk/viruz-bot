@@ -4,6 +4,8 @@
  * Adds a user by phone number, mention, or replied message.
  */
 
+const moderator = require('../../lib/groupModerator');
+
 module.exports = {
   name: 'add',
   aliases: ['invite', 'join'],
@@ -15,9 +17,22 @@ module.exports = {
       return sock.sendMessage(from, { text: '❌ This command can only be used in group chats!' }, { quoted: msg });
     }
 
+    // Fallback: If groupMetadata was not cached, attempt direct fetch
+    if (!groupMetadata && typeof sock.groupMetadata === 'function') {
+      try {
+        groupMetadata = await sock.groupMetadata(from);
+      } catch (e) {}
+    }
+
     // ── Extract target phone number from mention, quoted message, or args ──
     let rawTarget = '';
-    const contextInfo = msg.message?.extendedTextMessage?.contextInfo;
+    const contextInfo = msg.message?.extendedTextMessage?.contextInfo ||
+      msg.message?.imageMessage?.contextInfo ||
+      msg.message?.videoMessage?.contextInfo ||
+      msg.message?.stickerMessage?.contextInfo ||
+      msg.message?.documentMessage?.contextInfo ||
+      msg.message?.audioMessage?.contextInfo;
+
     if (contextInfo?.mentionedJid?.length > 0) {
       rawTarget = contextInfo.mentionedJid[0];
     } else if (contextInfo?.participant) {
@@ -38,8 +53,9 @@ module.exports = {
     // ── Check if user is already in the group ──
     if (groupMetadata?.participants) {
       const alreadyIn = groupMetadata.participants.some(p => {
-        const pNum = p.id.split('@')[0].split(':')[0].replace(/[^0-9]/g, '');
-        return pNum === cleanNum;
+        const pNum = (p.id || '').split('@')[0].split(':')[0].replace(/[^0-9]/g, '');
+        const pJid = (p.jid || '').split('@')[0].split(':')[0].replace(/[^0-9]/g, '');
+        return pNum === cleanNum || pJid === cleanNum;
       });
       if (alreadyIn) {
         return sock.sendMessage(from, {
@@ -50,12 +66,7 @@ module.exports = {
     }
 
     // ── Check if the bot has admin rights ──
-    const botRaw = sock.user?.id || '';
-    const botPhone = botRaw.split('@')[0].split(':')[0].replace(/[^0-9]/g, '');
-    const isBotAdmin = groupMetadata?.participants?.some(p => {
-      const pPhone = p.id.split('@')[0].split(':')[0].replace(/[^0-9]/g, '');
-      return pPhone === botPhone && (p.admin === 'admin' || p.admin === 'superadmin');
-    });
+    const isBotAdmin = groupMetadata ? moderator.isBotAdmin(sock, groupMetadata) : false;
 
     if (!isBotAdmin) {
       try {

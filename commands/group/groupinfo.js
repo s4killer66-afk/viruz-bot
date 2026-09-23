@@ -12,20 +12,29 @@ module.exports = {
       return sock.sendMessage(from, { text: '❌ This command can only be used in group chats!' }, { quoted: msg });
     }
 
-    const participants = groupMetadata.participants || [];
-    const admins = participants.filter(p => p.admin === 'admin' || p.admin === 'superadmin');
+    // Fallback: If groupMetadata was not cached, attempt direct fetch
+    if (!groupMetadata && typeof sock.groupMetadata === 'function') {
+      try {
+        groupMetadata = await sock.groupMetadata(from);
+      } catch (e) {}
+    }
+
+    const subject = groupMetadata?.subject || 'Group Chat';
+    const groupId = groupMetadata?.id || from;
+    const participants = groupMetadata?.participants || [];
+    const admins = participants.filter(p => p.admin === 'admin' || p.admin === 'superadmin' || p.isAdmin === true || p.isSuperAdmin === true);
 
     const body = `
-👥 *Group Name:* ${groupMetadata.subject}
-🆔 *Group ID:* ${groupMetadata.id}
+👥 *Group Name:* ${subject}
+🆔 *Group ID:* ${groupId}
 👑 *Total Members:* ${participants.length}
 🛡️ *Admins:* ${admins.length}
 
 🛡️ *ACTIVE MODERATION RULES:*
 • *Sticker Spam:* Warning at ${config.antiSpam.stickerWarningThreshold} | Kick at ${config.antiSpam.stickerKickThreshold}
 • *Message Spam:* Warning at ${config.antiSpam.messageWarningThreshold} | Kick at ${config.antiSpam.messageKickThreshold}
-• *Admin Immunity:* ✅ Permanently Active (Admins cannot be kicked or warned)
-• *Exclusive Commands:* .kick, .add, .tagall, .mute, .unmute
+• *Admin Protection:* ✅ Admins can warn each other but can NEVER be kicked automatically
+• *Exclusive Commands:* .kick, .warn, .tagall, .hidetag, .mute, .unmute
 `.trim();
 
     const output = atlasBox('GROUP INFORMATION', body);

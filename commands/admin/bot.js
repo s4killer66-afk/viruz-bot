@@ -15,8 +15,14 @@ module.exports = {
   description: 'Turn the bot on or off (Group Admins & Owner)',
   usage: '.bot [on/off]',
   async execute({ sock, msg, from, sender, isGroup, groupMetadata, args }) {
+    if (isGroup && !groupMetadata && typeof sock.groupMetadata === 'function') {
+      try {
+        groupMetadata = await sock.groupMetadata(from);
+      } catch (e) {}
+    }
+
     const isOwner = safety.isOwner(sender) || msg.key.fromMe;
-    const isAdmin = isGroup && moderator.isGroupAdmin(sender, groupMetadata);
+    const isAdmin = isGroup && moderator.isGroupAdmin(sender, groupMetadata, msg);
 
     if (!isOwner && !isAdmin) {
       return sock.sendMessage(from, {

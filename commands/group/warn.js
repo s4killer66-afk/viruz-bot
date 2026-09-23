@@ -13,8 +13,15 @@ module.exports = {
       return sock.sendMessage(from, { text: '❌ This command can only be used in group chats!' }, { quoted: msg });
     }
 
+    // Fallback: If groupMetadata was not cached, attempt direct fetch
+    if (!groupMetadata && typeof sock.groupMetadata === 'function') {
+      try {
+        groupMetadata = await sock.groupMetadata(from);
+      } catch (e) {}
+    }
+
     // REQUIREMENT: Admin exclusive command
-    if (!moderator.isGroupAdmin(sender, groupMetadata)) {
+    if (!moderator.isGroupAdmin(sender, groupMetadata, msg)) {
       return sock.sendMessage(from, {
         text: '⛔ *Access Denied!*\nThe `.warn` command is exclusively reserved for Group Admins.'
       }, { quoted: msg });
@@ -27,21 +34,10 @@ module.exports = {
       ? args.slice(1)
       : args;
 
-    // Determine target user (quoted message, mention, or typed number)
-    let targetJid = null;
-    const quoted = msg.message?.extendedTextMessage?.contextInfo?.participant;
-    const mentioned = msg.message?.extendedTextMessage?.contextInfo?.mentionedJid?.[0];
-
-    if (quoted) {
-      targetJid = quoted;
-    } else if (mentioned) {
-      targetJid = mentioned;
-    } else if (effectiveArgs[0]) {
-      const cleanNum = effectiveArgs[0].replace(/[^0-9]/g, '');
-      if (cleanNum.length >= 7) {
-        targetJid = `${cleanNum}@s.whatsapp.net`;
-      }
-    }
+    // Determine target user using universal resolution (quoted message, mention, or typed number)
+    const resolved = moderator.resolveTarget(msg, effectiveArgs, groupMetadata);
+    const targetJid = resolved.targetJid;
+    const quoted = resolved.isQuoted;
 
     if (!targetJid) {
       return sock.sendMessage(from, {

@@ -1051,9 +1051,165 @@ async function runTests() {
   // 3. Verify messageStore memory cap
   assert.strictEqual(messageStore.cache.options.maxKeys, 3000, 'MessageStore must be capped at 3000 keys to prevent container OOM');
   assert.strictEqual(messageStore.cache.options.stdTTL, 14400, 'MessageStore TTL must be 4 hours');
-  console.log('  ✅ Server Load & Memory Optimization: Metadata caching, 30-item media buffer cap, and lightweight store verified.');
+  // Test 21: Group Admin Commands & fromMe / Host Bot Immunity
+  console.log('\n▶ Test 21: Verifying Group Admin Commands (.mute, .unmute, .warn, .kick, .tagall, .hidetag, .groupinfo)...');
+  const muteCmd = commandHandler.getCommand('mute');
+  const unmuteCmd = commandHandler.getCommand('unmute');
+  const kickCmd = commandHandler.getCommand('kick');
+  const tagallCmd = commandHandler.getCommand('tagall');
+  const hidetagCmd = commandHandler.getCommand('hidetag');
+  const groupinfoCmd = commandHandler.getCommand('groupinfo');
 
-  console.log('\n🎉 ALL 20 AUTOMATED TESTS PASSED SUCCESSFULLY! 🎉\n');
+  assert(muteCmd !== null, 'Command .mute must exist');
+  assert(unmuteCmd !== null, 'Command .unmute must exist');
+  assert(kickCmd !== null, 'Command .kick must exist');
+  assert(tagallCmd !== null, 'Command .tagall must exist');
+  assert(hidetagCmd !== null, 'Command .hidetag must exist');
+  assert(groupinfoCmd !== null, 'Command .groupinfo must exist');
+
+  // Track groupSettingUpdate calls
+  const settingUpdates = [];
+  mockSock.groupSettingUpdate = async (gid, setting) => {
+    settingUpdates.push({ gid, setting });
+    return true;
+  };
+
+  // 1. Regular member executing .mute -> Access Denied
+  sentMessages.length = 0;
+  await muteCmd.execute({
+    sock: mockSock,
+    msg: { key: { id: 'mute_reg', fromMe: false } },
+    from: mockGroup,
+    isGroup: true,
+    sender: regularSender,
+    groupMetadata: mockGroupMetadata
+  });
+  assert(sentMessages[0].content.text.includes('Access Denied'), 'Regular member must be denied from muting group');
+
+  // 2. Admin executing .mute -> Success
+  sentMessages.length = 0;
+  settingUpdates.length = 0;
+  await muteCmd.execute({
+    sock: mockSock,
+    msg: { key: { id: 'mute_admin', fromMe: false } },
+    from: mockGroup,
+    isGroup: true,
+    sender: adminSender,
+    groupMetadata: mockGroupMetadata
+  });
+  assert(sentMessages[0].content.text.includes('Group Muted'), 'Admin must successfully mute group');
+  assert.strictEqual(settingUpdates[0].setting, 'announcement', 'Must update group setting to announcement');
+
+  // 3. Bot Host / Owner (fromMe: true) executing .mute -> Success!
+  sentMessages.length = 0;
+  settingUpdates.length = 0;
+  await muteCmd.execute({
+    sock: mockSock,
+    msg: { key: { id: 'mute_fromMe', fromMe: true } },
+    from: mockGroup,
+    isGroup: true,
+    sender: botJid,
+    groupMetadata: mockGroupMetadata
+  });
+  assert(sentMessages[0].content.text.includes('Group Muted'), 'Host account (fromMe: true) must successfully mute group');
+
+  // 4. Regular member executing .unmute -> Access Denied
+  sentMessages.length = 0;
+  await unmuteCmd.execute({
+    sock: mockSock,
+    msg: { key: { id: 'unmute_reg', fromMe: false } },
+    from: mockGroup,
+    isGroup: true,
+    sender: regularSender,
+    groupMetadata: mockGroupMetadata
+  });
+  assert(sentMessages[0].content.text.includes('Access Denied'), 'Regular member must be denied from unmuting group');
+
+  // 5. Admin executing .unmute -> Success
+  sentMessages.length = 0;
+  settingUpdates.length = 0;
+  await unmuteCmd.execute({
+    sock: mockSock,
+    msg: { key: { id: 'unmute_admin', fromMe: false } },
+    from: mockGroup,
+    isGroup: true,
+    sender: adminSender,
+    groupMetadata: mockGroupMetadata
+  });
+  assert(sentMessages[0].content.text.includes('Group Unmuted'), 'Admin must successfully unmute group');
+  assert.strictEqual(settingUpdates[0].setting, 'not_announcement', 'Must update group setting to not_announcement');
+
+  // 6. Bot Host / Owner (fromMe: true) executing .unmute -> Success!
+  sentMessages.length = 0;
+  settingUpdates.length = 0;
+  await unmuteCmd.execute({
+    sock: mockSock,
+    msg: { key: { id: 'unmute_fromMe', fromMe: true } },
+    from: mockGroup,
+    isGroup: true,
+    sender: botJid,
+    groupMetadata: mockGroupMetadata
+  });
+  assert(sentMessages[0].content.text.includes('Group Unmuted'), 'Host account (fromMe: true) must successfully unmute group');
+
+  // 7. .groupinfo when groupMetadata is null -> socket fallback fetches & formats correctly
+  sentMessages.length = 0;
+  await groupinfoCmd.execute({
+    sock: mockSock,
+    msg: { key: { id: 'groupinfo_test', fromMe: false } },
+    from: mockGroup,
+    isGroup: true,
+    groupMetadata: null // Simulate uncached group metadata
+  });
+  assert(sentMessages[0].content.text.includes('GROUP INFORMATION'), 'groupinfo must render even with null groupMetadata');
+  assert(sentMessages[0].content.text.includes('Test Gaming Group'), 'groupinfo must fetch group name from socket');
+
+  // 8. .tagall execution by admin and fromMe
+  sentMessages.length = 0;
+  await tagallCmd.execute({
+    sock: mockSock,
+    msg: { key: { id: 'tagall_test', fromMe: true } },
+    from: mockGroup,
+    isGroup: true,
+    sender: botJid,
+    groupMetadata: mockGroupMetadata,
+    args: ['Meeting', 'now']
+  });
+  assert(sentMessages[0].content.text.includes('TAG ALL'), 'tagall must render');
+  assert(sentMessages[0].content.mentions.length > 0, 'tagall must include mentions');
+
+  // 9. .hidetag execution by admin and fromMe
+  sentMessages.length = 0;
+  await hidetagCmd.execute({
+    sock: mockSock,
+    msg: { key: { id: 'hidetag_test', fromMe: true } },
+    from: mockGroup,
+    isGroup: true,
+    sender: botJid,
+    groupMetadata: mockGroupMetadata,
+    args: ['Hidden', 'announcement']
+  });
+  assert.strictEqual(sentMessages[0].content.text, 'Hidden announcement', 'hidetag must deliver message');
+  assert(sentMessages[0].content.mentions.length > 0, 'hidetag must mention members silently');
+
+  // 10. CommandHandler full pipeline test with fromMe: true in a group
+  sentMessages.length = 0;
+  settingUpdates.length = 0;
+  const mockFromMeMuteMsg = {
+    key: {
+      remoteJid: mockGroup,
+      fromMe: true,
+      id: 'DISPATCH_FROMME_MUTE_1'
+    },
+    message: {
+      conversation: '.mute'
+    }
+  };
+  await commandHandler.handleMessage(mockSock, mockFromMeMuteMsg);
+  assert(sentMessages.some(m => m.content.text?.includes('Group Muted')), 'Full CommandHandler pipeline must recognize fromMe: true as admin and mute group');
+  console.log('  ✅ Group Admin Commands: .mute, .unmute, .warn, .kick, .tagall, .hidetag, .groupinfo & fromMe host immunity fully verified.');
+
+  console.log('\n🎉 ALL 21 AUTOMATED TESTS PASSED SUCCESSFULLY! 🎉\n');
 }
 
 runTests().then(() => {

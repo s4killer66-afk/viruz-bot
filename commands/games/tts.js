@@ -120,8 +120,13 @@ module.exports = {
 
     // ── Admin Subcommand: .tts on / .tts off ──
     if (isAdminToggle) {
+      if (isGroup && !groupMetadata && typeof sock.groupMetadata === 'function') {
+        try {
+          groupMetadata = await sock.groupMetadata(from);
+        } catch (e) {}
+      }
       const isOwner = safety.isOwner(sender) || msg.key.fromMe;
-      const isAdmin = isGroup && moderator.isGroupAdmin(sender, groupMetadata);
+      const isAdmin = isGroup && moderator.isGroupAdmin(sender, groupMetadata, msg);
 
       if (!isOwner && !isAdmin) {
         return sock.sendMessage(from, {
