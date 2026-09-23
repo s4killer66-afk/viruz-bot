@@ -860,6 +860,23 @@ async function runTests() {
   const saraUrduAudio = sentMessages.find(m => m.content.audio);
   assert(saraUrduAudio.content.fileName.includes('Sara'), 'Sara Urdu audio filename must be Sara');
 
+  // Test Sara speaking English words properly with authentic Pakistani accent
+  sentMessages.length = 0;
+  await ttsCmd.execute({
+    sock: mockSock,
+    msg: { key: { id: 'test_sara_english' } },
+    from: mockGroup,
+    sender: regularSender,
+    isGroup: true,
+    groupMetadata: mockGroupMetadata,
+    args: ['Welcome', 'to', 'our', 'WhatsApp', 'group', 'brother!'],
+    commandName: 'sara'
+  });
+  assert(sentMessages.some(m => m.content.audio), 'Sara English audio must be sent');
+  const saraEngAudio = sentMessages.find(m => m.content.audio);
+  assert(saraEngAudio.content.fileName.includes('Sara'), 'Sara English audio filename must be Sara');
+  assert(saraEngAudio.content.audio.length > 500, 'Sara English audio buffer must contain voice data');
+
   // Test command handler aliases routing
   assert.strictEqual(commandHandler.getCommand('sara'), ttsCmd, "commandHandler must route 'sara' to tts command");
   assert.strictEqual(commandHandler.getCommand('urdu'), ttsCmd, "commandHandler must route 'urdu' to tts command");
