@@ -83,12 +83,12 @@ module.exports = {
         sock.sendPresenceUpdate('recording', from).catch(() => {});
       }
 
-      // 2. React to user's message with character emoji
+      // 2. React to user's message with character emoji (non-blocking in background)
       try {
         if (targetCharacter.emoji && msg?.key) {
-          await sock.sendMessage(from, {
+          sock.sendMessage(from, {
             react: { text: targetCharacter.emoji, key: msg.key }
-          });
+          }).catch(() => {});
         }
       } catch (e) {}
 
@@ -252,12 +252,12 @@ module.exports = {
       sock.sendPresenceUpdate('recording', from).catch(() => {});
     }
 
-    // 2. React to user's message with character emoji
+    // 2. React to user's message with character emoji (non-blocking in background)
     try {
       if (targetCharacter.emoji && msg?.key) {
-        await sock.sendMessage(from, {
+        sock.sendMessage(from, {
           react: { text: targetCharacter.emoji, key: msg.key }
-        });
+        }).catch(() => {});
       }
     } catch (e) {}
 
