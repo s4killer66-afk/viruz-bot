@@ -10,6 +10,21 @@ process.on('unhandledRejection', (reason) => {
   console.log('[System Handled Rejection]:', reason?.message || reason);
 });
 
+// ── HYEHOST / Container Auto-Dependency Check ──
+// Automatically install dependencies if node_modules is missing on the server
+try {
+  require.resolve('express');
+} catch (depErr) {
+  console.log('\n📦 [HYEHOST Auto-Installer] Dependencies missing in container! Running npm install...');
+  const { execSync } = require('child_process');
+  try {
+    execSync('npm install --omit=dev --no-audit --no-fund', { stdio: 'inherit', cwd: __dirname });
+    console.log('✅ [HYEHOST Auto-Installer] All packages installed successfully!\n');
+  } catch (installErr) {
+    console.error('❌ [HYEHOST Auto-Installer] Auto-install failed:', installErr.message);
+  }
+}
+
 const express = require('express');
 const cors = require('cors');
 const path = require('path');

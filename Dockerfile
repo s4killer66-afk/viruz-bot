@@ -14,7 +14,7 @@ RUN npm install --omit=dev
 COPY . .
 
 # Expose web pairing dashboard port
-EXPOSE 3000
+EXPOSE 8080 3000
 
 # Start VIRUZ WhatsApp bot
 CMD ["node", "index.js"]
