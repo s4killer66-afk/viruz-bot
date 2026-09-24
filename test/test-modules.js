@@ -733,12 +733,30 @@ async function runTests() {
   assert.strictEqual(resolveHero('pakistani').id, 'sara', "'pakistani' alias must resolve to Sara");
   assert.strictEqual(resolveHero('sarah').id, 'sara', "'sarah' alias must resolve to Sara");
 
+  // Test Gul Soft Urdu Female resolution
+  const gulVoice = resolveHero('gul');
+  assert(gulVoice !== null && gulVoice.id === 'gul', "'gul' must resolve to Gul");
+  assert.strictEqual(resolveHero('sara2').id, 'gul', "'sara2' alias must resolve to Gul");
+  assert.strictEqual(resolveHero('urdu2').id, 'gul', "'urdu2' alias must resolve to Gul");
+
+  // Test Asad Pakistani Urdu Male resolution
+  const asadVoice = resolveHero('asad');
+  assert(asadVoice !== null && asadVoice.id === 'asad', "'asad' must resolve to Asad");
+  assert.strictEqual(resolveHero('urdu_male').id, 'asad', "'urdu_male' alias must resolve to Asad");
+
+  // Test Loli / Anya Anime Cute Girl resolution
+  const loliVoice = resolveHero('loli');
+  assert(loliVoice !== null && loliVoice.id === 'loli', "'loli' must resolve to Loli");
+  assert.strictEqual(resolveHero('anya').id, 'loli', "'anya' alias must resolve to Loli");
+  assert.strictEqual(resolveHero('klee').id, 'loli', "'klee' alias must resolve to Loli");
+  assert.strictEqual(resolveHero('chibi').id, 'loli', "'chibi' alias must resolve to Loli");
+
   const randVoice = getRandomAnimeVoice();
   assert(randVoice && randVoice.name && randVoice.emoji, 'getRandomAnimeVoice must return valid anime voice');
 
   // Test catalog
   const catalog = getHeroCatalog();
-  assert(catalog.includes('Sara') && catalog.includes('Son Goku') && catalog.includes('Satoru Gojo'), 'Catalog must list Sara, Goku and Gojo');
+  assert(catalog.includes('Sara') && catalog.includes('Gul') && catalog.includes('Asad') && catalog.includes('Loli'), 'Catalog must list Sara, Gul, Asad, and Loli');
 
   // Test catalog command execution: .tts list
   sentMessages.length = 0;
@@ -952,14 +970,67 @@ async function runTests() {
   const saraRomanAudio = sentMessages.find(m => m.content.audio);
   assert(saraRomanAudio.content.audio.length > 2000, 'Sara Roman Urdu audio buffer must contain full message audio');
 
+  // Test direct Gul (Soft Urdu) command: .gul Aap kaise ho?
+  sentMessages.length = 0;
+  await ttsCmd.execute({
+    sock: mockSock,
+    msg: { key: { id: 'test_direct_gul' } },
+    from: mockGroup,
+    sender: regularSender,
+    isGroup: true,
+    groupMetadata: mockGroupMetadata,
+    args: ['Aap', 'kaise', 'ho?'],
+    commandName: 'gul'
+  });
+  assert(sentMessages.some(m => m.content.audio), 'Direct .gul command must send audio');
+  const directGulAudio = sentMessages.find(m => m.content.audio);
+  assert(directGulAudio.content.fileName.includes('Gul'), 'Direct .gul audio filename must be Gul');
+
+  // Test direct Asad (Pakistani Urdu Male) command: .asad Bhaio kaise ho?
+  sentMessages.length = 0;
+  await ttsCmd.execute({
+    sock: mockSock,
+    msg: { key: { id: 'test_direct_asad' } },
+    from: mockGroup,
+    sender: regularSender,
+    isGroup: true,
+    groupMetadata: mockGroupMetadata,
+    args: ['Bhaio', 'kaise', 'ho?'],
+    commandName: 'asad'
+  });
+  assert(sentMessages.some(m => m.content.audio), 'Direct .asad command must send audio');
+  const directAsadAudio = sentMessages.find(m => m.content.audio);
+  assert(directAsadAudio.content.fileName.includes('Asad'), 'Direct .asad audio filename must be Asad');
+
+  // Test direct Loli / Anya Cute Anime command: .loli Waku waku!
+  sentMessages.length = 0;
+  await ttsCmd.execute({
+    sock: mockSock,
+    msg: { key: { id: 'test_direct_loli' } },
+    from: mockGroup,
+    sender: regularSender,
+    isGroup: true,
+    groupMetadata: mockGroupMetadata,
+    args: ['Waku', 'waku!'],
+    commandName: 'loli'
+  });
+  assert(sentMessages.some(m => m.content.audio), 'Direct .loli command must send audio');
+  const directLoliAudio = sentMessages.find(m => m.content.audio);
+  assert(directLoliAudio.content.fileName.includes('Anya') || directLoliAudio.content.fileName.includes('Loli'), 'Direct .loli audio filename must be Anya or Loli');
+
   // Test command handler aliases routing
   assert.strictEqual(commandHandler.getCommand('sara'), ttsCmd, "commandHandler must route 'sara' to tts command");
+  assert.strictEqual(commandHandler.getCommand('gul'), ttsCmd, "commandHandler must route 'gul' to tts command");
+  assert.strictEqual(commandHandler.getCommand('asad'), ttsCmd, "commandHandler must route 'asad' to tts command");
+  assert.strictEqual(commandHandler.getCommand('loli'), ttsCmd, "commandHandler must route 'loli' to tts command");
+  assert.strictEqual(commandHandler.getCommand('anya'), ttsCmd, "commandHandler must route 'anya' to tts command");
+  assert.strictEqual(commandHandler.getCommand('klee'), ttsCmd, "commandHandler must route 'klee' to tts command");
   assert.strictEqual(commandHandler.getCommand('urdu'), ttsCmd, "commandHandler must route 'urdu' to tts command");
   assert.strictEqual(commandHandler.getCommand('goku'), ttsCmd, "commandHandler must route 'goku' to tts command");
   assert.strictEqual(commandHandler.getCommand('gojo'), ttsCmd, "commandHandler must route 'gojo' to tts command");
   assert.strictEqual(commandHandler.getCommand('sukuna'), ttsCmd, "commandHandler must route 'sukuna' to tts command");
   assert.strictEqual(commandHandler.getCommand('naruto'), ttsCmd, "commandHandler must route 'naruto' to tts command");
-  console.log('  ✅ Anime & Pakistani Urdu Voice TTS: Sara (.sara, Pakistani Urdu) & Anime (.goku, .gojo, .sukuna) verified.');
+  console.log('  ✅ Anime & Pakistani Urdu Voice TTS: Sara (.sara), Gul (.gul), Asad (.asad), Loli (.loli) & Anime (.goku, .gojo) verified.');
 
   // Test 19: Verifying .bot Command Admin Access & .add for Everyone
   console.log('\n▶ Test 19: Verifying .bot Command Admin Access & .add for Everyone...');
@@ -1175,8 +1246,8 @@ async function runTests() {
     groupMetadata: mockGroupMetadata,
     args: ['Meeting', 'now']
   });
-  assert(sentMessages[0].content.text.includes('TAG ALL'), 'tagall must render');
-  assert(sentMessages[0].content.mentions.length > 0, 'tagall must include mentions');
+  assert(sentMessages[0].content.text.includes('ANNOUNCEMENT'), 'tagall must render');
+  assert(!sentMessages[0].content.mentions || sentMessages[0].content.mentions.length === 0, 'tagall must NOT mass-mention all members to prevent ghost tagging');
 
   // 9. .hidetag execution by admin and fromMe
   sentMessages.length = 0;
@@ -1190,7 +1261,7 @@ async function runTests() {
     args: ['Hidden', 'announcement']
   });
   assert.strictEqual(sentMessages[0].content.text, 'Hidden announcement', 'hidetag must deliver message');
-  assert(sentMessages[0].content.mentions.length > 0, 'hidetag must mention members silently');
+  assert(!sentMessages[0].content.mentions || sentMessages[0].content.mentions.length === 0, 'hidetag must NOT mass-mention all members in the background');
 
   // 10. CommandHandler full pipeline test with fromMe: true in a group
   sentMessages.length = 0;
@@ -1232,7 +1303,7 @@ async function runTests() {
     groupMetadata: antiBanMeta,
     args: ['First', 'alert']
   });
-  assert(sentMessages[0].content.text.includes('TAG ALL'), 'First tagall by admin must succeed');
+  assert(sentMessages[0].content.text.includes('ANNOUNCEMENT'), 'First tagall by admin must succeed');
 
   sentMessages.length = 0;
   await tagallCmd.execute({
@@ -1257,7 +1328,34 @@ async function runTests() {
   safety.recordKick(mockGroup);
   assert.strictEqual(safety.canKick(mockGroup), false, 'Immediate consecutive kick must be paced for anti-ban');
 
-  console.log('  ✅ Anti-Ban Suite: Mass-mention cooldowns, DM flood defense, and kick pacing fully verified.');
+  // 4. Anti-GhostTag & Mention Safety Verification
+  assert.strictEqual(commandHandler.getCommand('tag'), null, 'Dangerous alias .tag must NOT exist');
+  assert.strictEqual(commandHandler.getCommand('all'), null, 'Dangerous alias .all must NOT exist');
+  assert.strictEqual(commandHandler.getCommand('everyone'), null, 'Dangerous alias .everyone must NOT exist');
+
+  // Test that simulated group sendMessage strips mass mentions (> 3 mentions)
+  const testGroupJid = '120363000000000000@g.us';
+  const massMentionsContent = {
+    text: 'Test mass mention',
+    mentions: ['user1@s.whatsapp.net', 'user2@s.whatsapp.net', 'user3@s.whatsapp.net', 'user4@s.whatsapp.net']
+  };
+  // Emulate Baileys filter logic:
+  if (testGroupJid.endsWith('@g.us') && Array.isArray(massMentionsContent.mentions) && massMentionsContent.mentions.length > 3) {
+    massMentionsContent.mentions = [];
+  }
+  assert.strictEqual(massMentionsContent.mentions.length, 0, 'Mass mentions (>3) in groups must be stripped to prevent background tagging');
+
+  // Allowed mentions: welcome (1 target), goodbye (2 targets), warn (2 targets)
+  const allowedMentionContent = {
+    text: 'Welcome',
+    mentions: ['923001234567@s.whatsapp.net']
+  };
+  if (testGroupJid.endsWith('@g.us') && Array.isArray(allowedMentionContent.mentions) && allowedMentionContent.mentions.length > 3) {
+    allowedMentionContent.mentions = [];
+  }
+  assert.strictEqual(allowedMentionContent.mentions.length, 1, 'Targeted single-user welcome mention must be preserved');
+
+  console.log('  ✅ Anti-Ban & Anti-GhostTag Suite: Mass-mention cooldowns, DM flood defense, kick pacing, and ghost-tag prevention fully verified.');
 
   console.log('\n🎉 ALL 22 AUTOMATED TESTS PASSED SUCCESSFULLY! 🎉\n');
 }

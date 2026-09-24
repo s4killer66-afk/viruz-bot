@@ -20,8 +20,8 @@ module.exports = {
   name: 'tts',
   aliases: ALL_ALIASES,
   category: 'games',
-  description: 'Convert text to voice notes (Sara authentic Pakistani Urdu & English human girl voice & 20+ Anime voices like Goku, Gojo, Sukuna)',
-  usage: '.sara <message> | .goku <message> | .tts sara <message> | .tts goku <message> | .tts on | .tts off | .tts list',
+  description: 'Convert text to voice notes (Sara, Gul & Asad authentic Pakistani Urdu & English voices, Cute Anime Loli voice & 20+ Anime voices like Goku, Gojo, Sukuna)',
+  usage: '.sara <msg> | .gul <msg> | .asad <msg> | .loli <msg> | .goku <msg> | .tts sara <msg> | .tts list | .tts on | .tts off',
   async execute({ sock, msg, from, sender, isGroup, groupMetadata, args, commandName }) {
     const activeCmd = (commandName || 'tts').toLowerCase();
     const isDirectCharacterCmd = activeCmd !== 'tts' && activeCmd !== 'tt' && activeCmd !== 'animetts' && activeCmd !== 'voicenote' && activeCmd !== 'vn';
@@ -92,10 +92,17 @@ module.exports = {
     if (!args[0]) {
       return sock.sendMessage(from, {
         text: '🎙️ *VIRUZ Voice TTS (Text-to-Speech)*\n\n' +
-              '*Pakistani Urdu & English Human Girl Voice:*\n' +
-              '• `.sara <message>` - Sara (Authentic Pakistani Urdu & English Girl 🧕)\n' +
-              '  _Aliases:_ `.tts sara`, `.tts urdu`, `.urdu <message>`\n\n' +
-              '*Anime Voices (Voicevox):*\n' +
+              '*🇵🇰 Authentic Pakistani & Urdu Voices:*\n' +
+              '• `.sara <message>` - Sara (Pakistani Urdu & English Girl 🧕)\n' +
+              '  _Aliases:_ `.tts sara`, `.tts urdu`, `.urdu <message>`\n' +
+              '• `.gul <message>` - Gul (Soft Expressive Urdu Girl 🌸)\n' +
+              '  _Aliases:_ `.tts gul`, `.sara2 <msg>`, `.urdu2 <msg>`\n' +
+              '• `.asad <message>` - Asad (Authentic Pakistani Urdu Male 🧔)\n' +
+              '  _Aliases:_ `.tts asad`, `.urdu_male <msg>`\n\n' +
+              '*🌸 Cute Anime Loli Voice:*\n' +
+              '• `.loli <message>` - Anya / Loli (Waku waku chibi anime girl 🌸)\n' +
+              '  _Aliases:_ `.anya <msg>`, `.klee <msg>`, `.chibi <msg>`\n\n' +
+              '*💥 Iconic Anime Voices (Voicevox):*\n' +
               '• `.goku <message>` - Son Goku (Super Saiyan 💥)\n' +
               '• `.gojo <message>` - Satoru Gojo (The Honored One 🤞)\n' +
               '• `.sukuna <message>` - Ryomen Sukuna (King of Curses 🩸)\n' +
@@ -105,11 +112,10 @@ module.exports = {
               '*General Format:* `.tts <voice/character> <message>` or `.tt <voice> <message>`\n' +
               '*Examples:*\n' +
               '• `.sara Aap kaise ho sab?`\n' +
-              '• `.sara السلام علیکم! آپ سب کیسے ہیں؟`\n' +
-              '• `.sara Welcome everyone, hope you are having a great time!`\n' +
-              '• `.tts sara Shukriya sabka group mein aane ka`\n' +
+              '• `.gul السلام علیکم! آپ سب کیسے ہیں؟`\n' +
+              '• `.asad Bhaio sab theek thak hain?`\n' +
+              '• `.loli Waku waku! Let\'s go!`\n' +
               '• `.tts goku Kamehameha!`\n' +
-              '• `.tts gojo Throughout heaven and earth, I alone am the honored one.`\n' +
               '• `.tts random <message>` (Speaks in a random anime voice 🎲)\n' +
               '• `.tts list` (View all voice styles & commands)\n\n' +
               '_Admin Controls:_\n' +

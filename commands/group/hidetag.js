@@ -3,9 +3,9 @@ const safety = require('../../lib/safety');
 
 module.exports = {
   name: 'hidetag',
-  aliases: ['htag', 'tag'],
+  aliases: ['htag'], // Removed 'tag' to prevent accidental background ghost-tagging
   category: 'group',
-  description: 'Send a message with invisible mentions to all members',
+  description: 'Send a clean group announcement without background mass-tagging',
   usage: '.hidetag <message>',
   async execute({ sock, msg, from, isGroup, sender, groupMetadata, args }) {
     if (!isGroup) {
@@ -39,7 +39,7 @@ module.exports = {
       }, { quoted: msg });
     }
 
-    // Anti-Ban Cooldown: Limit mass mention to once every 30s per group (bypass for bot host / owner)
+    // Anti-Ban Cooldown: Limit announcements to once every 30s per group (bypass for bot host / owner)
     const cooldownSec = safety.getMassMentionCooldown('hidetag', from);
     if (cooldownSec > 0 && !msg.key.fromMe && !safety.isOwner(sender)) {
       return sock.sendMessage(from, {
@@ -48,10 +48,8 @@ module.exports = {
     }
     safety.recordMassMention('hidetag', from);
 
-    const participants = groupMetadata?.participants || [];
-    const mentions = participants.map(p => p.id).filter(Boolean);
     const text = args.join(' ') || '📢 Group Notification';
-
-    await sock.sendMessage(from, { text, mentions });
+    // Deliver message cleanly WITHOUT silent background mass mentions
+    await sock.sendMessage(from, { text });
   }
 };

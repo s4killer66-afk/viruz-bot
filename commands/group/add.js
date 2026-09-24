@@ -8,7 +8,7 @@ const moderator = require('../../lib/groupModerator');
 
 module.exports = {
   name: 'add',
-  aliases: ['invite', 'join'],
+  aliases: ['invite'],
   category: 'group',
   description: 'Add or invite a member to the group (Available for Everyone)',
   usage: '.add <phone_number_with_country_code> | .add @user | (reply with .add)',

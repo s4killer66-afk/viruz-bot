@@ -38,8 +38,8 @@ Prefixes: \`. \` or \`, \` | Connected
 • \`${p}resetwarn @user\` - Reset member's warnings to 0
 • \`${p}kick @user\` - Remove member from group (Admins protected)
 • \`${p}welcome [on/off]\` - Toggle auto welcome & goodbye messages
-• \`${p}tagall [text]\` - Mention all group members
-• \`${p}hidetag [text]\` - Invisible announcement mention
+• \`${p}tagall [text]\` - Announcement with member roster (no ghost-tagging)
+• \`${p}hidetag [text]\` - Clean announcement without background pings
 • \`${p}mute\` - Close group chat (admins only)
 • \`${p}unmute\` - Open group chat for everyone
 • \`${p}groupinfo\` - View group settings & active thresholds

@@ -4,9 +4,9 @@ const { atlasBox } = require('../../lib/utils');
 
 module.exports = {
   name: 'tagall',
-  aliases: ['everyone', 'all'],
+  aliases: [], // Removed 'everyone' and 'all' to prevent accidental mass tagging
   category: 'group',
-  description: 'Mention all group members (Admin exclusive)',
+  description: 'Broadcast announcement with group roster (no background ghost-tagging)',
   usage: '.tagall [announcement_message]',
   async execute({ sock, msg, from, isGroup, sender, groupMetadata, args }) {
     if (!isGroup) {
@@ -36,11 +36,11 @@ module.exports = {
 
     if (!isAdmin) {
       return sock.sendMessage(from, {
-        text: '⛔ *Access Denied!*\nOnly Group Admins can mention everyone.'
+        text: '⛔ *Access Denied!*\nOnly Group Admins can use this command.'
       }, { quoted: msg });
     }
 
-    // Anti-Ban Cooldown: Limit mass mention to once every 30s per group (bypass for bot host / owner)
+    // Anti-Ban Cooldown: Limit announcements to once every 30s per group (bypass for bot host / owner)
     const cooldownSec = safety.getMassMentionCooldown('tagall', from);
     if (cooldownSec > 0 && !msg.key.fromMe && !safety.isOwner(sender)) {
       return sock.sendMessage(from, {
@@ -51,15 +51,10 @@ module.exports = {
 
     const subject = groupMetadata?.subject || 'Group';
     const participants = groupMetadata?.participants || [];
-    const mentions = participants.map(p => p.id).filter(Boolean);
     const customMsg = args.join(' ') || 'Attention everyone!';
 
-    let list = `📢 *Announcement:* ${customMsg}\n👥 *Total Members:* ${participants.length}\n\n`;
-    participants.forEach((p, idx) => {
-      list += `${idx + 1}. @${p.id.split('@')[0]}\n`;
-    });
-
-    const output = atlasBox(`TAG ALL • ${subject}`, list.trim());
-    await sock.sendMessage(from, { text: output, mentions }, { quoted: msg });
+    const body = `📢 *Announcement:* ${customMsg}\n👥 *Group:* ${subject}\n📊 *Total Members:* ${participants.length}`;
+    const output = atlasBox(`ANNOUNCEMENT • ${subject}`, body);
+    await sock.sendMessage(from, { text: output }, { quoted: msg });
   }
 };
