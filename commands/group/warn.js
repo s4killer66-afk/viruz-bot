@@ -63,13 +63,14 @@ module.exports = {
     const adminName = (msg.pushName || '').trim();
     const adminDisplay = adminName ? `${adminName} (@${adminPhone})` : `@${adminPhone}`;
 
-    // ── Subcommand: RESET WARNINGS ──
+    // ── Subcommand: RESET WARNINGS & SPAM ──
     if (isResetCommand) {
-      const previousCount = moderator.resetWarnings(from, targetJid);
+      const resetResult = moderator.resetSpam(from, targetJid);
+      const previousCount = resetResult.warnCount;
       const resetBody = `
 👤 *User:* @${targetPhone}
 👮‍♂️ *Reset By (Admin):* ${adminDisplay}
-🔄 *Status:* Warnings cleared (was ${previousCount}/${moderator.maxWarnings}).
+🔄 *Status:* Warnings and spam limits cleared (was ${previousCount}/${moderator.maxWarnings} warns).
 ✅ User warning count has been reset to [ 0 / ${moderator.maxWarnings} ].
 `.trim();
 

@@ -35,7 +35,7 @@ Prefixes: \`. \` or \`, \` | Connected
 
 🛡️ *GROUP MODERATION (Admins Only):*
 • \`${p}warn @user [reason]\` - Official warning (6 warns = Auto-Kick)
-• \`${p}resetwarn @user\` - Reset member's warnings to 0
+• \`${p}resetspam @user\` - Reset member's spam limits & warnings
 • \`${p}kick @user\` - Remove member from group (Admins protected)
 • \`${p}welcome [on/off]\` - Toggle auto welcome & goodbye messages
 • \`${p}tagall [text]\` - Announcement with member roster (no ghost-tagging)

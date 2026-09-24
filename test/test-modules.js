@@ -1357,7 +1357,99 @@ async function runTests() {
 
   console.log('  ✅ Anti-Ban & Anti-GhostTag Suite: Mass-mention cooldowns, DM flood defense, kick pacing, and ghost-tag prevention fully verified.');
 
-  console.log('\n🎉 ALL 22 AUTOMATED TESTS PASSED SUCCESSFULLY! 🎉\n');
+  // Test 23: Verifying .resetspam Command (Sticker Spam, Message Spam, Warnings & Anti-GhostTag)
+  console.log('\n▶ Test 23: Verifying .resetspam Command & Zero Background Pings...');
+  const resetSpamCmd = commandHandler.getCommand('resetspam');
+  assert(resetSpamCmd !== null, 'Command .resetspam must be loaded');
+  assert.strictEqual(commandHandler.aliases.get('restspam'), 'resetspam', 'Alias restspam must point to resetspam');
+  assert.strictEqual(commandHandler.aliases.get('clearspam'), 'resetspam', 'Alias clearspam must point to resetspam');
+  assert.strictEqual(commandHandler.aliases.get('unspam'), 'resetspam', 'Alias unspam must point to resetspam');
+  assert.strictEqual(commandHandler.aliases.get('clearwarn'), 'resetspam', 'Alias clearwarn must point to resetspam');
+  assert.strictEqual(commandHandler.aliases.get('resetspams'), 'resetspam', 'Alias resetspams must point to resetspam');
+
+  const spamTestUser = '923007788990@s.whatsapp.net';
+  const spamTestKey = `${mockGroup}:${spamTestUser}`;
+  moderator.stickerTracker.set(spamTestKey, { count: 4, lastTime: Date.now() });
+  moderator.messageTracker.set(spamTestKey, { count: 5, lastText: 'spam', lastTime: Date.now() });
+  moderator.warnTracker.set(spamTestKey, { count: 3, warnings: [] });
+
+  // 1. Non-admin execution -> Denied
+  sentMessages.length = 0;
+  await resetSpamCmd.execute({
+    sock: mockSock,
+    msg: { key: { id: 'resetspam_denied' } },
+    from: mockGroup,
+    isGroup: true,
+    sender: regularSender,
+    groupMetadata: mockGroupMetadata,
+    botJid,
+    args: ['@923007788990']
+  });
+  assert(sentMessages[0].content.text.includes('Access Denied'), 'Non-admin must be denied from resetting spam');
+
+  // 2. Admin execution with mention -> Clears sticker spam, message spam, and warnings
+  sentMessages.length = 0;
+  await resetSpamCmd.execute({
+    sock: mockSock,
+    msg: {
+      key: { id: 'resetspam_admin' },
+      message: { extendedTextMessage: { contextInfo: { mentionedJid: [spamTestUser] } } },
+      pushName: 'AdminLeader'
+    },
+    from: mockGroup,
+    isGroup: true,
+    sender: adminSender,
+    groupMetadata: mockGroupMetadata,
+    botJid,
+    args: ['@923007788990']
+  });
+  assert.strictEqual(sentMessages.length, 1, 'Reset confirmation must be sent');
+  assert(sentMessages[0].content.text.includes('SPAM LIMITS RESET'), 'Header must confirm spam limits reset');
+  assert(sentMessages[0].content.text.includes('Sticker Spam Limit: Reset'), 'Must show sticker spam reset');
+  assert(sentMessages[0].content.text.includes('Message Spam Limit: Reset'), 'Must show message spam reset');
+  assert(sentMessages[0].content.text.includes('Group Warnings: Reset'), 'Must show warnings reset');
+
+  // Anti-GhostTag Verification: Mentions must ONLY contain the target and admin, NEVER the whole group
+  assert.strictEqual(sentMessages[0].content.mentions.length, 2, 'Only target user and admin may be in mentions array');
+  assert(sentMessages[0].content.mentions.includes(spamTestUser), 'Target user must be mentioned');
+  assert(sentMessages[0].content.mentions.includes(adminSender), 'Admin must be mentioned');
+  assert(!sentMessages[0].content.mentions.includes(regularSender), 'Unrelated members must NOT be tagged');
+
+  // Trackers verified clean in memory
+  assert(!moderator.stickerTracker.has(spamTestKey), 'Sticker tracker must be cleared');
+  assert(!moderator.messageTracker.has(spamTestKey), 'Message tracker must be cleared');
+  assert(!moderator.warnTracker.has(spamTestKey), 'Warn tracker must be cleared');
+
+  // 3. Name-based resolution (.resetspam <name>)
+  moderator.stickerTracker.set(spamTestKey, { count: 3, lastTime: Date.now() });
+  const metaWithName = {
+    id: mockGroup,
+    participants: [
+      { id: adminSender, admin: 'admin' },
+      { id: spamTestUser, admin: null, name: 'Shahid Afridi' }
+    ]
+  };
+  sentMessages.length = 0;
+  await resetSpamCmd.execute({
+    sock: mockSock,
+    msg: {
+      key: { id: 'resetspam_by_name' },
+      message: { conversation: '.resetspam Shahid' },
+      pushName: 'AdminLeader'
+    },
+    from: mockGroup,
+    isGroup: true,
+    sender: adminSender,
+    groupMetadata: metaWithName,
+    botJid,
+    args: ['Shahid']
+  });
+  assert(sentMessages[0].content.text.includes('923007788990'), 'Must resolve user by name');
+  assert(!moderator.stickerTracker.has(spamTestKey), 'Sticker tracker must be cleared via name resolution');
+
+  console.log('  ✅ .resetspam Command: Resets sticker spam, message spam, warnings, and guarantees zero background tagging.');
+
+  console.log('\n🎉 ALL 23 AUTOMATED TESTS PASSED SUCCESSFULLY! 🎉\n');
 }
 
 runTests().then(() => {
