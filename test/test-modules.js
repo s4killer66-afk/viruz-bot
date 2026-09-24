@@ -1018,6 +1018,38 @@ async function runTests() {
   const directLoliAudio = sentMessages.find(m => m.content.audio);
   assert(directLoliAudio.content.fileName.includes('Anya') || directLoliAudio.content.fileName.includes('Loli'), 'Direct .loli audio filename must be Anya or Loli');
 
+  // Test direct soundboard sample playback for Goku (Masako Nozawa), Luffy (Mayumi Tanaka), Naruto (Junko Takeuchi)
+  const { ANIME_VOICES, getCharacterVoiceSampleBuffer } = require('../lib/heroVoices');
+  assert.strictEqual(ANIME_VOICES.goku.edgeVoice, 'ja-JP-NanamiNeural', 'Goku must use female seiyuu voice ja-JP-NanamiNeural');
+  assert.strictEqual(ANIME_VOICES.luffy.edgeVoice, 'ja-JP-NanamiNeural', 'Luffy must use female seiyuu voice ja-JP-NanamiNeural');
+  assert.strictEqual(ANIME_VOICES.naruto.edgeVoice, 'ja-JP-NanamiNeural', 'Naruto must use female seiyuu voice ja-JP-NanamiNeural');
+  assert(ANIME_VOICES.goku.actor.includes('Masako Nozawa'), 'Goku actor must be Masako Nozawa');
+  assert(ANIME_VOICES.luffy.actor.includes('Mayumi Tanaka'), 'Luffy actor must be Mayumi Tanaka');
+  assert(ANIME_VOICES.naruto.actor.includes('Junko Takeuchi'), 'Naruto actor must be Junko Takeuchi');
+  assert(getCharacterVoiceSampleBuffer('goku') !== null, 'Goku sample buffer must exist on disk');
+  assert(getCharacterVoiceSampleBuffer('luffy') !== null, 'Luffy sample buffer must exist on disk');
+  assert(getCharacterVoiceSampleBuffer('naruto') !== null, 'Naruto sample buffer must exist on disk');
+
+  // Verify direct .goku command with NO message plays authentic voice sample
+  sentMessages.length = 0;
+  await ttsCmd.execute({
+    sock: mockSock,
+    msg: { key: { id: 'test_direct_goku_soundboard' } },
+    from: mockGroup,
+    sender: regularSender,
+    isGroup: true,
+    groupMetadata: mockGroupMetadata,
+    args: [],
+    commandName: 'goku'
+  });
+  assert(sentMessages.some(m => m.content.audio), 'Direct .goku without text must send authentic audio');
+  assert(sentMessages.some(m => m.content.text && m.content.text.includes('Masako Nozawa')), 'Direct .goku must display actor profile tip');
+
+  // Verify Urdu voices are completely untouched
+  assert.strictEqual(ANIME_VOICES.sara.voiceName, 'ur-PK-UzmaNeural', 'Sara must retain ur-PK-UzmaNeural');
+  assert.strictEqual(ANIME_VOICES.gul.voiceName, 'ur-IN-GulNeural', 'Gul must retain ur-IN-GulNeural');
+  assert.strictEqual(ANIME_VOICES.asad.voiceName, 'ur-PK-AsadNeural', 'Asad must retain ur-PK-AsadNeural');
+
   // Test command handler aliases routing
   assert.strictEqual(commandHandler.getCommand('sara'), ttsCmd, "commandHandler must route 'sara' to tts command");
   assert.strictEqual(commandHandler.getCommand('gul'), ttsCmd, "commandHandler must route 'gul' to tts command");
@@ -1030,7 +1062,7 @@ async function runTests() {
   assert.strictEqual(commandHandler.getCommand('gojo'), ttsCmd, "commandHandler must route 'gojo' to tts command");
   assert.strictEqual(commandHandler.getCommand('sukuna'), ttsCmd, "commandHandler must route 'sukuna' to tts command");
   assert.strictEqual(commandHandler.getCommand('naruto'), ttsCmd, "commandHandler must route 'naruto' to tts command");
-  console.log('  ✅ Anime & Pakistani Urdu Voice TTS: Sara (.sara), Gul (.gul), Asad (.asad), Loli (.loli) & Anime (.goku, .gojo) verified.');
+  console.log('  ✅ Anime & Pakistani Urdu Voice TTS: Sara (.sara), Gul (.gul), Asad (.asad), Loli (.loli) & Anime (.goku, .gojo, .luffy, .naruto seiyuu soundboards) verified.');
 
   // Test 19: Verifying .bot Command Admin Access & .add for Everyone
   console.log('\n▶ Test 19: Verifying .bot Command Admin Access & .add for Everyone...');

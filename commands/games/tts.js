@@ -1,4 +1,4 @@
-const { resolveHero, generateHeroTTS, getHeroCatalog, getRandomAnimeVoice, ANIME_VOICES } = require('../../lib/heroVoices');
+const { resolveHero, generateHeroTTS, getHeroCatalog, getRandomAnimeVoice, getCharacterVoiceSampleBuffer, ANIME_VOICES } = require('../../lib/heroVoices');
 const ttsState = require('../../lib/ttsState');
 const moderator = require('../../lib/groupModerator');
 const safety = require('../../lib/safety');
@@ -45,6 +45,34 @@ module.exports = {
 
       const messageText = args.join(' ').trim();
       if (!messageText) {
+        const sampleBuffer = getCharacterVoiceSampleBuffer(targetCharacter.id);
+        if (sampleBuffer) {
+          if (sock && typeof sock.sendPresenceUpdate === 'function') {
+            sock.sendPresenceUpdate('recording', from).catch(() => {});
+          }
+          try {
+            if (targetCharacter.emoji && msg?.key) {
+              sock.sendMessage(from, { react: { text: targetCharacter.emoji, key: msg.key } }).catch(() => {});
+            }
+          } catch (e) {}
+
+          const sentAudio = await sock.sendMessage(from, {
+            audio: sampleBuffer,
+            mimetype: 'audio/mpeg',
+            fileName: `${targetCharacter.name}_voice.mp3`
+          }, { quoted: msg });
+          if (sentAudio?.key?.id) safety.markSentByBot(sentAudio.key.id);
+
+          const tipMsg = await sock.sendMessage(from, {
+            text: `${targetCharacter.emoji} *${targetCharacter.name}* (${targetCharacter.title} - ${targetCharacter.anime})\n` +
+                  `🎭 _Voice Actor Profile:_ ${targetCharacter.actor || 'Authentic Seiyuu'}\n` +
+                  `🎬 _Signature Line:_ "${targetCharacter.sampleText || targetCharacter.intro}"\n\n` +
+                  `💡 *Speak Custom Words:* Type \`.${activeCmd} <your message>\` to make ${targetCharacter.name} say anything!`
+          }, { quoted: msg });
+          if (tipMsg?.key?.id) safety.markSentByBot(tipMsg.key.id);
+          return;
+        }
+
         return sock.sendMessage(from, {
           text: `❌ *Missing Message!*\nPlease provide what ${targetCharacter.emoji} *${targetCharacter.name}* should say.\n*Example:* \`.${activeCmd} Let's do this!\``
         }, { quoted: msg });
@@ -186,6 +214,34 @@ module.exports = {
     }
 
     if (!messageText) {
+      const sampleBuffer = getCharacterVoiceSampleBuffer(targetCharacter.id);
+      if (sampleBuffer) {
+        if (sock && typeof sock.sendPresenceUpdate === 'function') {
+          sock.sendPresenceUpdate('recording', from).catch(() => {});
+        }
+        try {
+          if (targetCharacter.emoji && msg?.key) {
+            sock.sendMessage(from, { react: { text: targetCharacter.emoji, key: msg.key } }).catch(() => {});
+          }
+        } catch (e) {}
+
+        const sentAudio = await sock.sendMessage(from, {
+          audio: sampleBuffer,
+          mimetype: 'audio/mpeg',
+          fileName: `${targetCharacter.name}_voice.mp3`
+        }, { quoted: msg });
+        if (sentAudio?.key?.id) safety.markSentByBot(sentAudio.key.id);
+
+        const tipMsg = await sock.sendMessage(from, {
+          text: `${targetCharacter.emoji} *${targetCharacter.name}* (${targetCharacter.title} - ${targetCharacter.anime})\n` +
+                `🎭 _Voice Actor Profile:_ ${targetCharacter.actor || 'Authentic Seiyuu'}\n` +
+                `🎬 _Signature Line:_ "${targetCharacter.sampleText || targetCharacter.intro}"\n\n` +
+                `💡 *Speak Custom Words:* Type \`.tts ${targetCharacter.id} <your message>\` to make ${targetCharacter.name} say anything!`
+        }, { quoted: msg });
+        if (tipMsg?.key?.id) safety.markSentByBot(tipMsg.key.id);
+        return;
+      }
+
       return sock.sendMessage(from, {
         text: `❌ *Missing Message!*\nPlease provide the text for ${targetCharacter.emoji} *${targetCharacter.name}* to speak.\n*Example:* \`.tts ${targetCharacter.id} Let's do this!\``
       }, { quoted: msg });
