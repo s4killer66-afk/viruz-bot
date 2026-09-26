@@ -6,11 +6,14 @@
  */
 
 const safety = require('../../lib/safety');
+const messageStore = require('../../lib/messageStore');
+const antiDelete = require('../../lib/antiDelete');
 
 function extractMediaMessage(m) {
   if (!m) return null;
   if (m.imageMessage || m.videoMessage || m.audioMessage) return m;
   if (m.ephemeralMessage?.message) return extractMediaMessage(m.ephemeralMessage.message);
+  if (m.deviceSentMessage?.message) return extractMediaMessage(m.deviceSentMessage.message);
   if (m.viewOnceMessage?.message) return extractMediaMessage(m.viewOnceMessage.message);
   if (m.viewOnceMessageV2?.message) return extractMediaMessage(m.viewOnceMessageV2.message);
   if (m.viewOnceMessageV2Extension?.message) return extractMediaMessage(m.viewOnceMessageV2Extension.message);
@@ -25,32 +28,72 @@ module.exports = {
   description: 'Silently download View Once media directly to your private inbox and auto-delete command',
   usage: 'Reply to any View-Once message with .viewonce or .videwonce',
   async execute({ sock, msg, from }) {
-    // 1. Instantly delete the command message from the chat so others don't notice
+    // 1. Instantly delete the command message from the chat so others don't notice (if in group)
+    const isGroup = from.endsWith('@g.us');
     try {
       await sock.sendMessage(from, { delete: msg.key });
     } catch (delErr) {
       // If delete fails, continue silently
     }
 
-    // Determine target recipient (user's personal private inbox)
-    const senderJid = msg.key.participant || msg.key.remoteJid;
-    const senderPhone = (senderJid || '').split('@')[0].split(':')[0];
-    let targetInbox = null;
-    if (senderPhone && safety.isOwner(senderPhone)) {
-      targetInbox = `${senderPhone}@s.whatsapp.net`;
-    } else if (sock.user?.id) {
-      const myNum = sock.user.id.split(':')[0].split('@')[0];
-      targetInbox = `${myNum}@s.whatsapp.net`;
-    } else {
-      targetInbox = safety.getOwnerJid();
+    // Determine target recipient (user's personal private inbox for groups, current chat for DMs)
+    let targetInbox = from;
+    if (isGroup) {
+      if (msg.key?.fromMe) {
+        const myNum = sock.user?.id ? sock.user.id.split('@')[0].split(':')[0].replace(/[^0-9]/g, '') : null;
+        targetInbox = myNum ? `${myNum}@s.whatsapp.net` : safety.getOwnerJid();
+      } else {
+        const senderJid = msg.key?.participant || msg.participant;
+        if (senderJid) {
+          const senderPhone = senderJid.split('@')[0].split(':')[0].replace(/[^0-9]/g, '');
+          targetInbox = `${senderPhone}@s.whatsapp.net`;
+        }
+      }
     }
 
-    const contextInfo = msg.message?.extendedTextMessage?.contextInfo;
-    const quoted = contextInfo?.quotedMessage;
-    const directMsg = msg.message;
+    const unwrappedMsg = extractMediaMessage(msg.message) || msg.message;
+    const contextInfo = unwrappedMsg?.extendedTextMessage?.contextInfo ||
+      msg.message?.extendedTextMessage?.contextInfo ||
+      msg.message?.imageMessage?.contextInfo ||
+      msg.message?.videoMessage?.contextInfo;
 
-    // Check inside quoted message or current message for media
-    const targetMsg = extractMediaMessage(quoted) || extractMediaMessage(directMsg);
+    const quoted = contextInfo?.quotedMessage;
+    const quotedId = contextInfo?.stanzaId;
+
+    // 1. Check messageStore for the full original message (contains complete mediaKey and directPath)
+    let storedOriginal = quotedId ? (messageStore.get(quotedId) || messageStore.get({ id: quotedId, remoteJid: from })) : null;
+
+    // 2. Check inside quoted message, stored original message, or direct message for media
+    let targetMsg = extractMediaMessage(quoted);
+    if (!targetMsg && storedOriginal?.message) {
+      targetMsg = extractMediaMessage(storedOriginal.message);
+    }
+    if (!targetMsg) {
+      targetMsg = extractMediaMessage(msg.message);
+    }
+
+    // 3. Fallback: look for the most recent View-Once message in this chat from messageStore
+    if (!targetMsg && messageStore.cache) {
+      const allKeys = messageStore.cache.keys();
+      for (let i = allKeys.length - 1; i >= 0; i--) {
+        const item = messageStore.cache.get(allKeys[i]);
+        if (item && item.key?.remoteJid === from) {
+          const extracted = extractMediaMessage(item.message);
+          if (
+            extracted?.imageMessage?.viewOnce ||
+            extracted?.videoMessage?.viewOnce ||
+            extracted?.audioMessage?.viewOnce ||
+            item.message?.viewOnceMessage ||
+            item.message?.viewOnceMessageV2 ||
+            item.message?.viewOnceMessageV2Extension
+          ) {
+            targetMsg = extracted;
+            storedOriginal = item;
+            break;
+          }
+        }
+      }
+    }
 
     if (!targetMsg) {
       return sock.sendMessage(targetInbox, {
@@ -58,9 +101,11 @@ module.exports = {
       });
     }
 
-    const imageMsg = targetMsg.imageMessage;
-    const videoMsg = targetMsg.videoMessage;
-    const audioMsg = targetMsg.audioMessage;
+    // Prioritize storedOriginal media if quotedMessage was stripped of download keys by WhatsApp
+    const storedMediaMsg = storedOriginal ? extractMediaMessage(storedOriginal.message) : null;
+    const imageMsg = storedMediaMsg?.imageMessage || targetMsg.imageMessage;
+    const videoMsg = storedMediaMsg?.videoMessage || targetMsg.videoMessage;
+    const audioMsg = storedMediaMsg?.audioMessage || targetMsg.audioMessage;
 
     if (!imageMsg && !videoMsg && !audioMsg) {
       return sock.sendMessage(targetInbox, {
@@ -68,35 +113,69 @@ module.exports = {
       });
     }
 
-    const isGroup = from.endsWith('@g.us');
     let chatTitle = isGroup ? 'Group Chat' : 'Direct Message';
+    let groupMetadata = null;
     if (isGroup && sock.groupMetadata) {
       try {
-        const meta = await sock.groupMetadata(from);
-        if (meta?.subject) chatTitle = meta.subject;
+        groupMetadata = await sock.groupMetadata(from);
+        if (groupMetadata?.subject) chatTitle = groupMetadata.subject;
       } catch (e) {}
     }
 
-    const quotedAuthor = contextInfo?.participant || (isGroup ? null : from);
-    const authorPhone = quotedAuthor ? quotedAuthor.split('@')[0].split(':')[0] : 'Unknown';
-    const timeStr = new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+    const rawAuthorJid = contextInfo?.participant ||
+      storedOriginal?.key?.participant ||
+      storedOriginal?.participant ||
+      (isGroup ? null : from);
 
-    const baseHeader = `╭───『 🔓 VIEW ONCE REVEALED 』───╮\n👥 *Chat:* ${chatTitle}\n👤 *Sender:* +${authorPhone}\n🕒 *Time:* ${timeStr}`;
+    let senderDisplay = 'User';
+    if (rawAuthorJid) {
+      const resolvedPhone = antiDelete.resolvePhoneNumber(
+        rawAuthorJid,
+        false,
+        groupMetadata,
+        sock,
+        storedOriginal?.key || contextInfo
+      );
+      if (resolvedPhone && resolvedPhone !== 'Unknown') {
+        senderDisplay = `+${resolvedPhone}`;
+      }
+    }
+
+    const timeStr = new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+    const baseHeader = `╭───『 🔓 VIEW ONCE REVEALED 』───╮\n👥 *Chat:* ${chatTitle}\n👤 *Sender:* ${senderDisplay}\n🕒 *Time:* ${timeStr}`;
+
+    const sendMedia = async (payload) => {
+      try {
+        await sock.sendMessage(targetInbox, payload);
+      } catch (sendErr) {
+        if (targetInbox !== from) {
+          await sock.sendMessage(from, payload);
+        } else {
+          throw sendErr;
+        }
+      }
+    };
 
     try {
       const { downloadContentFromMessage } = await import('@whiskeysockets/baileys');
 
       if (imageMsg) {
-        const stream = await downloadContentFromMessage(imageMsg, 'image');
-        let buffer = Buffer.from([]);
-        for await (const chunk of stream) {
-          buffer = Buffer.concat([buffer, chunk]);
+        let buffer = storedOriginal?._mediaBuffer;
+        if (!buffer || buffer.length === 0) {
+          if (!imageMsg.mediaKey) {
+            throw new Error('Media key missing. Please reply to the View-Once message while the bot is online.');
+          }
+          const stream = await downloadContentFromMessage(imageMsg, 'image');
+          buffer = Buffer.from([]);
+          for await (const chunk of stream) {
+            buffer = Buffer.concat([buffer, chunk]);
+          }
         }
         const caption = imageMsg.caption
           ? `${baseHeader}\n📸 *Caption:* ${imageMsg.caption}\n╰───『 VIRUZ • PRIVATE MEDIA 』───╯`
           : `${baseHeader}\n╰───『 VIRUZ • PRIVATE MEDIA 』───╯`;
 
-        await sock.sendMessage(targetInbox, {
+        await sendMedia({
           image: buffer,
           caption
         });
@@ -104,16 +183,22 @@ module.exports = {
       }
 
       if (videoMsg) {
-        const stream = await downloadContentFromMessage(videoMsg, 'video');
-        let buffer = Buffer.from([]);
-        for await (const chunk of stream) {
-          buffer = Buffer.concat([buffer, chunk]);
+        let buffer = storedOriginal?._mediaBuffer;
+        if (!buffer || buffer.length === 0) {
+          if (!videoMsg.mediaKey) {
+            throw new Error('Media key missing. Please reply to the View-Once message while the bot is online.');
+          }
+          const stream = await downloadContentFromMessage(videoMsg, 'video');
+          buffer = Buffer.from([]);
+          for await (const chunk of stream) {
+            buffer = Buffer.concat([buffer, chunk]);
+          }
         }
         const caption = videoMsg.caption
           ? `${baseHeader}\n🎬 *Caption:* ${videoMsg.caption}\n╰───『 VIRUZ • PRIVATE MEDIA 』───╯`
           : `${baseHeader}\n╰───『 VIRUZ • PRIVATE MEDIA 』───╯`;
 
-        await sock.sendMessage(targetInbox, {
+        await sendMedia({
           video: buffer,
           caption
         });
@@ -121,15 +206,21 @@ module.exports = {
       }
 
       if (audioMsg) {
-        const stream = await downloadContentFromMessage(audioMsg, 'audio');
-        let buffer = Buffer.from([]);
-        for await (const chunk of stream) {
-          buffer = Buffer.concat([buffer, chunk]);
+        let buffer = storedOriginal?._mediaBuffer;
+        if (!buffer || buffer.length === 0) {
+          if (!audioMsg.mediaKey) {
+            throw new Error('Media key missing. Please reply to the View-Once message while the bot is online.');
+          }
+          const stream = await downloadContentFromMessage(audioMsg, 'audio');
+          buffer = Buffer.from([]);
+          for await (const chunk of stream) {
+            buffer = Buffer.concat([buffer, chunk]);
+          }
         }
-        await sock.sendMessage(targetInbox, {
+        await sendMedia({
           text: `${baseHeader}\n🎤 *Voice Note / Audio Recovered*\n╰───『 VIRUZ • PRIVATE MEDIA 』───╯`
         });
-        await sock.sendMessage(targetInbox, {
+        await sendMedia({
           audio: buffer,
           mimetype: audioMsg.mimetype || 'audio/mp4',
           ptt: true
@@ -138,7 +229,7 @@ module.exports = {
       }
     } catch (err) {
       console.error('[ViewOnce] Error downloading media:', err.message);
-      await sock.sendMessage(targetInbox, {
+      await sendMedia({
         text: `❌ *Failed to download View Once media:* ${err.message}`
       });
     }

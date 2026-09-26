@@ -507,9 +507,88 @@ async function runTests() {
   assert(!reactionSent, 'Must NOT react with any emoji in the group');
   console.log('  ✅ View-Once: Command automatically deleted from chat, no public notifications.');
 
+  // Test 15b: Verifying View-Once Pre-Cached Buffer Recovery from messageStore
+  console.log('\n▶ Test 15b: Verifying View-Once Pre-Cached Buffer Recovery from messageStore...');
+  const originalVOId = 'VO_ORIGINAL_MSG_456';
+  const messageStore = require('../lib/messageStore');
+  const storedVOMsg = {
+    key: {
+      remoteJid: testChatGroup,
+      fromMe: false,
+      id: originalVOId,
+      participant: '923555555555@s.whatsapp.net'
+    },
+    message: {
+      viewOnceMessage: {
+        message: {
+          imageMessage: {
+            caption: 'Recovered View-Once Photo'
+          }
+        }
+      }
+    },
+    _mediaBuffer: Buffer.from('REALVIEWONCEIMAGEDATA')
+  };
+  messageStore.set(originalVOId, storedVOMsg);
+
+  const mockReplyToVOCommand = {
+    key: {
+      remoteJid: testChatGroup,
+      fromMe: true,
+      id: 'VO_REPLY_CMD_999',
+      participant: botJid
+    },
+    message: {
+      extendedTextMessage: {
+        text: '.viewonce',
+        contextInfo: {
+          stanzaId: originalVOId,
+          participant: '923555555555@s.whatsapp.net',
+          quotedMessage: {
+            viewOnceMessage: {
+              message: {
+                imageMessage: {
+                  caption: 'Recovered View-Once Photo'
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  };
+
+  sentMessages.length = 0;
+  await viewOnceCmd.execute({ sock: mockSock, msg: mockReplyToVOCommand, from: testChatGroup });
+  const voRecovered = sentMessages.find(m => m.content.image);
+  assert(voRecovered, 'Must deliver recovered View-Once image');
+  assert.strictEqual(voRecovered.content.image.toString(), 'REALVIEWONCEIMAGEDATA', 'Recovered image must match stored buffer');
+  console.log('  ✅ View-Once Recovery: Successfully recovered View-Once image using storedOriginal media buffer.');
+
+  // Test 15c: Verifying Owner Self-Messages & deviceSentMessage Command Handling
+  console.log('\n▶ Test 15c: Verifying Owner Self-Messages & deviceSentMessage Command Handling...');
+  sentMessages.length = 0;
+  const selfCmdMsg = {
+    key: {
+      remoteJid: '923116469820@s.whatsapp.net',
+      fromMe: true,
+      id: 'SELF_DEVICE_CMD_001'
+    },
+    message: {
+      deviceSentMessage: {
+        message: {
+          conversation: '.ping'
+        }
+      }
+    }
+  };
+  const pingExecuted = await commandHandler.handleMessage(mockSock, selfCmdMsg);
+  assert.strictEqual(pingExecuted, true, 'Command sent from owner device must execute');
+  assert(sentMessages.some(m => m.content.text && m.content.text.includes('Pong!')), 'Must reply with Pong! to self command');
+  console.log('  ✅ Owner Self-Message: Successfully executed .ping command wrapped in deviceSentMessage.');
+
   // Test 16: MessageStore & getMessage Retry (Resolves "Waiting for this message" issue)
   console.log('\n▶ Test 16: Verifying MessageStore & getMessage Retry Resolution...');
-  const messageStore = require('../lib/messageStore');
   const testMsgId = 'RETRY_CMD_REPLY_789';
   const testJid = '923116469820@s.whatsapp.net';
   const mockOutgoingReply = {
