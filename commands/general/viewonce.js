@@ -1,7 +1,8 @@
 /**
  * View Once Media Downloader — STEALTH PRIVATE MODE
  * Automatically deletes the command message from the chat so no one notices.
- * Delivers the revealed View-Once photo, video, or voice note directly to your private inbox.
+ * Delivers the revealed View-Once photo, video, or voice note directly to YOUR private inbox.
+ * Never alerts or sends media into the sender's chat.
  * Supports: .viewonce, .videwonce, .vv, .rvo
  */
 
@@ -28,26 +29,32 @@ module.exports = {
   description: 'Silently download View Once media directly to your private inbox and auto-delete command',
   usage: 'Reply to any View-Once message with .viewonce or .videwonce',
   async execute({ sock, msg, from }) {
-    // 1. Instantly delete the command message from the chat so others don't notice (if in group)
     const isGroup = from.endsWith('@g.us');
-    try {
-      await sock.sendMessage(from, { delete: msg.key });
-    } catch (delErr) {
-      // If delete fails, continue silently
-    }
 
-    // Determine target recipient (user's personal private inbox for groups, current chat for DMs)
-    let targetInbox = from;
-    if (isGroup) {
-      if (msg.key?.fromMe) {
-        const myNum = sock.user?.id ? sock.user.id.split('@')[0].split(':')[0].replace(/[^0-9]/g, '') : null;
-        targetInbox = myNum ? `${myNum}@s.whatsapp.net` : safety.getOwnerJid();
-      } else {
-        const senderJid = msg.key?.participant || msg.participant;
-        if (senderJid) {
-          const senderPhone = senderJid.split('@')[0].split(':')[0].replace(/[^0-9]/g, '');
+    // Determine target recipient:
+    // ALWAYS send to the bot owner's personal private chat (Message Yourself / owner DM)
+    // NEVER send into the chat of the user who sent the media!
+    const ownerJid = safety.getOwnerJid();
+    const myPhone = sock.user?.id ? sock.user.id.split('@')[0].split(':')[0].replace(/[^0-9]/g, '') : null;
+    let targetInbox = myPhone ? `${myPhone}@s.whatsapp.net` : ownerJid;
+
+    // If a non-owner member ran the command in a group, deliver to their own private DM
+    if (isGroup && !msg.key?.fromMe) {
+      const senderJid = msg.key?.participant || msg.participant;
+      if (senderJid) {
+        const senderPhone = senderJid.split('@')[0].split(':')[0].replace(/[^0-9]/g, '');
+        if (senderPhone) {
           targetInbox = `${senderPhone}@s.whatsapp.net`;
         }
+      }
+    }
+
+    // Instantly delete the command message from the current chat (group or other user's DM) so they don't notice
+    if (from !== targetInbox) {
+      try {
+        await sock.sendMessage(from, { delete: msg.key });
+      } catch (delErr) {
+        // If delete fails, continue silently
       }
     }
 
@@ -144,14 +151,16 @@ module.exports = {
     const timeStr = new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
     const baseHeader = `╭───『 🔓 VIEW ONCE REVEALED 』───╮\n👥 *Chat:* ${chatTitle}\n👤 *Sender:* ${senderDisplay}\n🕒 *Time:* ${timeStr}`;
 
+    // Delivery helper: STRICTLY delivers to targetInbox (never leaks into sender's chat)
     const sendMedia = async (payload) => {
       try {
         await sock.sendMessage(targetInbox, payload);
       } catch (sendErr) {
-        if (targetInbox !== from) {
-          await sock.sendMessage(from, payload);
-        } else {
-          throw sendErr;
+        // If primary targetInbox fails, fallback to configured owner JID, never the sender's chat
+        if (targetInbox !== ownerJid) {
+          try {
+            await sock.sendMessage(ownerJid, payload);
+          } catch (e) {}
         }
       }
     };
